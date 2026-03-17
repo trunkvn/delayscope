@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Where People Are Procrastinating",
-  description: "Realtime global avoidance map",
+  title: "DELAYSCOPE",
+  description: "A realtime visualization of global procrastination",
 };
 
 export default function RootLayout({

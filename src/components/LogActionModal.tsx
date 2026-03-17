@@ -366,24 +366,6 @@ export default function LogActionModal({
           )}
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes modal-fade-up {
-          from { opacity: 0; transform: translateY(20px); filter: blur(4px); }
-          to { opacity: 1; transform: translateY(0); filter: blur(0px); }
-        }
-        @keyframes modal-fade-left {
-          from { opacity: 0; transform: translateX(30px); filter: blur(4px); }
-          to { opacity: 1; transform: translateX(0); filter: blur(0px); }
-        }
-        @keyframes modal-zoom-in {
-          from { opacity: 0; transform: scale(0.9); filter: blur(4px); }
-          to { opacity: 1; transform: scale(1); filter: blur(0px); }
-        }
-        .animate-modal-up { animation: modal-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-modal-left { animation: modal-fade-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-modal-zoom { animation: modal-zoom-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      `}} />
     </div>
   );
 }

@@ -3,89 +3,20 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-
-// Color của quốc gia sẽ được tính toán động dựa vào Pins bên dưới
-
-// Thông tin hiển thị trên tooltip cho từng quốc gia
-const countryInfo: Record<string, { name: string; description: string }> = {
-  VN: { name: "Việt Nam", description: "Đông Nam Á" },
-  RU: { name: "Russia", description: "Châu Âu" },
-  CN: { name: "China", description: "Châu Á" },
-  US: { name: "United States", description: "Bắc Mỹ" },
-  ID: { name: "Indonesia", description: "Đông Nam Á" },
-  FR: { name: "France", description: "Châu Âu" },
-  JP: { name: "Japan", description: "Châu Á" },
-  BR: { name: "Brazil", description: "Nam Mỹ" },
-  IN: { name: "India", description: "Châu Á" },
-  AU: { name: "Australia", description: "Châu Úc" },
-  ZA: { name: "South Africa", description: "Châu Phi" },
-  CA: { name: "Canada", description: "Bắc Mỹ" },
-  GB: { name: "United Kingdom", description: "Châu Âu" },
-};
-
-// Dữ liệu giả lập về tình trạng trì hoãn của từng quốc gia
-const countryDetails: Record<
-  string,
-  {
-    name: string;
-    delayIndex: number;
-    topReason: string;
-    activeAvoidance: string;
-    deadlineMissed: number;
-  }
-> = {
-  VN: { name: "Việt Nam", delayIndex: 85, topReason: "Lướt Facebook/Tiktok", activeAvoidance: "Uống trà đá", deadlineMissed: 245000 },
-  RU: { name: "Russia", delayIndex: 60, topReason: "Watching dashcam videos", activeAvoidance: "Drinking tea", deadlineMissed: 120000 },
-  CN: { name: "China", delayIndex: 75, topReason: "Scrolling Weibo", activeAvoidance: "Playing mobile games", deadlineMissed: 890000 },
-  US: { name: "United States", delayIndex: 92, topReason: "Binge-watching Netflix", activeAvoidance: "Online shopping", deadlineMissed: 1540000 },
-  ID: { name: "Indonesia", delayIndex: 78, topReason: "Traffic jam excuse", activeAvoidance: "Hanging out", deadlineMissed: 320000 },
-  FR: { name: "France", delayIndex: 88, topReason: "Coffee & Croissant breaks", activeAvoidance: "Striking", deadlineMissed: 450000 },
-  JP: { name: "Japan", delayIndex: 45, topReason: "Polite socializing", activeAvoidance: "Cleaning workspace", deadlineMissed: 50000 },
-  BR: { name: "Brazil", delayIndex: 82, topReason: "Watching football", activeAvoidance: "Beach time", deadlineMissed: 560000 },
-  IN: { name: "India", delayIndex: 70, topReason: "Chai breaks", activeAvoidance: "Watching Cricket", deadlineMissed: 1100000 },
-  AU: { name: "Australia", delayIndex: 65, topReason: "Surfing", activeAvoidance: "BBQ prep", deadlineMissed: 180000 },
-  ZA: { name: "South Africa", delayIndex: 72, topReason: "Load shedding", activeAvoidance: "Braai", deadlineMissed: 210000 },
-  CA: { name: "Canada", delayIndex: 55, topReason: "Apologizing", activeAvoidance: "Watching hockey", deadlineMissed: 95000 },
-  GB: { name: "United Kingdom", delayIndex: 76, topReason: "Complaining about weather", activeAvoidance: "Making tea", deadlineMissed: 380000 },
-};
-
-
-
-// Cấu hình các khu vực base để random điểm
-const baseCities = [
-  { lat: 35.6895, lng: 139.6917, country: 'Japan', iso: 'JP', desc: ['Watching Anime', 'Playing Games', 'Reading Manga', 'Overworking'] },
-  { lat: 40.7128, lng: -74.0060, country: 'United States', iso: 'US', desc: ['Coding session', 'Watching Netflix', 'Scrolling TikTok', 'Eating Fast Food'] },
-  { lat: 51.5074, lng: -0.1278, country: 'United Kingdom', iso: 'GB', desc: ['Tea break', 'Complaining about weather', 'Watching Football', 'Pub'] },
-  { lat: 10.7626, lng: 106.6601, country: 'Vietnam', iso: 'VN', desc: ['Looking out the window', 'Drinking iced coffee', 'Chatting with friends', 'Watching Tiktok'] },
-  { lat: 21.0285, lng: 105.8542, country: 'Vietnam', iso: 'VN', desc: ['Writing email', 'Eating pho', 'Taking a nap', 'Scrolling Facebook'] },
-  { lat: -33.8688, lng: 151.2093, country: 'Australia', iso: 'AU', desc: ['Analyzing data', 'Surfing web', 'Watching kangaroos on YT'] },
-  { lat: 48.8566, lng: 2.3522, country: 'France', iso: 'FR', desc: ['Eating croissant', 'Smoking', 'Arguing online', 'Sipping wine'] },
-  { lat: -23.5505, lng: -46.6333, country: 'Brazil', iso: 'BR', desc: ['Studying', 'Playing football', 'Dancing', 'Listening to music'] },
-  { lat: 37.7749, lng: -122.4194, country: 'United States', iso: 'US', desc: ['Scrolling social media', 'Debugging', 'Tech meeting', 'Drinking overpriced coffee'] },
-  { lat: 52.5200, lng: 13.4050, country: 'Germany', iso: 'DE', desc: ['Reading documentation', 'Organizing files', 'Drinking beer', 'Staring at monitor'] },
-  { lat: 28.6139, lng: 77.2090, country: 'India', iso: 'IN', desc: ['Fixing bugs', 'Watching cricket', 'Drinking Chai', 'Attending Zoom meeting'] },
-  { lat: -1.2921, lng: 36.8219, country: 'Kenya', iso: 'KE', desc: ['Planning', 'Safari tour online', 'Taking a walk'] },
-  { lat: 55.7558, lng: 37.6173, country: 'Russia', iso: 'RU', desc: ['Gaming', 'Drinking tea', 'Watching snow', 'Dashcam videos'] },
-  { lat: 39.9042, lng: 116.4074, country: 'China', iso: 'CN', desc: ['Online shopping', 'Watching short videos', 'Studying for exam'] },
-  { lat: 19.4326, lng: -99.1332, country: 'Mexico', iso: 'MX', desc: ['Siesta time', 'Eating tacos', 'Listening to music'] },
-  { lat: 30.0444, lng: 31.2357, country: 'Egypt', iso: 'EG', desc: ['Smoking shisha', 'Watching pyramids doc', 'Scrolling FB'] },
-  { lat: 1.3521, lng: 103.8198, country: 'Singapore', iso: 'SG', desc: ['Overworking', 'Eating chicken rice', 'Window shopping online'] },
-  { lat: 37.5665, lng: 126.9780, country: 'South Korea', iso: 'KR', desc: ['Listening to K-Pop', 'Studying', 'Gaming'] },
-  { lat: 41.9028, lng: 12.4964, country: 'Italy', iso: 'IT', desc: ['Drinking espresso', 'Hand gesturing at screen', 'Cooking pasta'] },
-  { lat: -34.6037, lng: -58.3816, country: 'Argentina', iso: 'AR', desc: ['Drinking mate', 'Watching football', 'Crying over inflation'] },
-];
+import { countryDetails } from "@/mocks/countryDetailData";
+import { baseCities } from "@/mocks/citiesData";
 
 // Sinh lượng lớn Pins ngẫu nhiên với toạ độ có độ lệch nhẹ để rải rác
 const mockGlobalPins = Array.from({ length: 200 }).map((_, i) => {
   const baseCity = baseCities[Math.floor(Math.random() * baseCities.length)];
   const latOffset = (Math.random() - 0.5) * 10; // Càng to thì phân tán càng rộng
-  const lngOffset = (Math.random() - 0.5) * 10; 
+  const lngOffset = (Math.random() - 0.5) * 10;
   const isProcrastinating = Math.random() > 0.4; // 60% tỉ lệ trì hoãn (cho thực tế)
   return {
     id: String(i + 1),
     lat: baseCity.lat + latOffset,
     lng: baseCity.lng + lngOffset,
-    type: isProcrastinating ? 'procrastinate' : 'focus',
+    type: isProcrastinating ? "procrastinate" : "focus",
     score: Math.floor(Math.random() * 40) + 60, // 60-99
     country: baseCity.country,
     iso: baseCity.iso,
@@ -96,37 +27,43 @@ const mockGlobalPins = Array.from({ length: 200 }).map((_, i) => {
 // Calculate dynamic country colors based on pins
 const calculateDynamicCountryColors = () => {
   const stats: Record<string, { delay: number; focus: number }> = {};
-  
-  mockGlobalPins.forEach(pin => {
+
+  mockGlobalPins.forEach((pin) => {
     if (!stats[pin.iso]) stats[pin.iso] = { delay: 0, focus: 0 };
-    if (pin.type === 'procrastinate') stats[pin.iso].delay++;
+    if (pin.type === "procrastinate") stats[pin.iso].delay++;
     else stats[pin.iso].focus++;
   });
 
   const colors: Record<string, string> = {};
-  Object.keys(stats).forEach(iso => {
+  Object.keys(stats).forEach((iso) => {
     const total = stats[iso].delay + stats[iso].focus;
     if (total === 0) return;
-    
+
     const delayRatio = stats[iso].delay / total;
-    
+
     // Dynamic color logic:
     // DelayRatio > 0.6 -> Đỏ (red-500 rgba)
     // DelayRatio > 0.4 -> Cam (amber-500 rgba)
     // DelayRatio <= 0.4 -> Xanh lá (green-500 rgba)
-    
+
     if (delayRatio > 0.6) colors[iso] = "rgba(239, 68, 68, 0.45)";
     else if (delayRatio > 0.4) colors[iso] = "rgba(245, 158, 11, 0.45)";
     else colors[iso] = "rgba(34, 197, 94, 0.45)";
   });
-  
+
   return colors;
 };
 
 const countryColors = calculateDynamicCountryColors();
 
 interface MapProps {
-  userPin?: { lat: number; lng: number; type: string; score: number; country: string } | null;
+  userPin?: {
+    lat: number;
+    lng: number;
+    type: string;
+    score: number;
+    country: string;
+  } | null;
   onLoad?: () => void;
 }
 
@@ -137,12 +74,19 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
   const userPinMarker = useRef<maplibregl.Marker | null>(null);
   const globalPinMarkers = useRef<maplibregl.Marker[]>([]);
   const [showUserSidebar, setShowUserSidebar] = useState(false);
-  const [activeSidebarPin, setActiveSidebarPin] = useState<{lat: number; lng: number; type: string; score: number; country: string; isSelf?: boolean, desc?: string} | null>(null);
+  const [activeSidebarPin, setActiveSidebarPin] = useState<{
+    lat: number;
+    lng: number;
+    type: string;
+    score: number;
+    country: string;
+    isSelf?: boolean;
+    desc?: string;
+  } | null>(null);
 
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
   // Loại bỏ hàm updateCountryColors bên ngoài để đưa trực tiếp vào event load của MapLibre
-
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
@@ -191,7 +135,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
       mapInstance.on("click", (e) => {
         // Chỉ chạy khi các layer sẵn sàng
         if (!mapInstance.getLayer("countries-fill")) return;
-        
+
         // KIỂM TRA: Nếu click vào một global pin thì bỏ qua không load tooltip / sidebar quốc gia
         if (mapInstance.getLayer("global-pins-hitbox")) {
           const pinFeatures = mapInstance.queryRenderedFeatures(e.point, {
@@ -270,19 +214,25 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
           source: "global-pins",
           paint: {
             "circle-radius": [
-              "interpolate", ["linear"], ["zoom"],
-              2, 4,
-              10, 16
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              2,
+              4,
+              10,
+              16,
             ],
             "circle-color": [
               "match",
               ["get", "type"],
-              "procrastinate", "rgba(239, 68, 68, 0.25)",
-              "focus", "rgba(34, 197, 94, 0.25)",
-              "transparent"
+              "procrastinate",
+              "rgba(239, 68, 68, 0.25)",
+              "focus",
+              "rgba(34, 197, 94, 0.25)",
+              "transparent",
             ],
-            "circle-blur": 0.8
-          }
+            "circle-blur": 0.8,
+          },
         });
 
         // Layer 2: Lớp chấm đặc ở lõi (core)
@@ -292,15 +242,21 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
           source: "global-pins",
           paint: {
             "circle-radius": [
-              "interpolate", ["linear"], ["zoom"],
-              2, 2.5,
-              10, 5
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              2,
+              2.5,
+              10,
+              5,
             ],
             "circle-color": [
               "match",
               ["get", "type"],
-              "procrastinate", "#ef4444", // red-500
-              "focus", "#22c55e", // green-500
+              "procrastinate",
+              "#ef4444", // red-500
+              "focus",
+              "#22c55e", // green-500
               "#ffffff",
             ],
             "circle-opacity": 0.9,
@@ -316,9 +272,13 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
           source: "global-pins",
           paint: {
             "circle-radius": [
-              "interpolate", ["linear"], ["zoom"],
-              2, 12,
-              10, 24
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              2,
+              12,
+              10,
+              24,
             ],
             "circle-color": "rgba(0,0,0,0)",
             "circle-opacity": 0, // Vô hình hoàn toàn nhưng quét được sự kiện DOM
@@ -326,21 +286,21 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         });
 
         // Handle Hover (Pointer Cursor) trên Hitbox
-        map.current.on('mouseenter', 'global-pins-hitbox', () => {
-          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        map.current.on("mouseenter", "global-pins-hitbox", () => {
+          if (map.current) map.current.getCanvas().style.cursor = "pointer";
         });
-        map.current.on('mouseleave', 'global-pins-hitbox', () => {
-          if (map.current) map.current.getCanvas().style.cursor = '';
+        map.current.on("mouseleave", "global-pins-hitbox", () => {
+          if (map.current) map.current.getCanvas().style.cursor = "";
         });
 
         // Handle Click (mở Sidebar bên trái cho pin) trên Hitbox
-        map.current.on('click', 'global-pins-hitbox', (e) => {
+        map.current.on("click", "global-pins-hitbox", (e) => {
           if (e.features && e.features.length > 0) {
             const props = e.features[0].properties;
             const geo = e.features[0].geometry;
             const lng = (geo as any).coordinates[0];
             const lat = (geo as any).coordinates[1];
-            
+
             setShowUserSidebar(true);
             setActiveSidebarPin({
               lat: lat,
@@ -349,7 +309,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
               score: props?.score,
               country: props?.country,
               desc: props?.desc,
-              isSelf: false
+              isSelf: false,
             });
             setSelectedCountry(null);
 
@@ -364,12 +324,11 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
             }
           }
         });
-
       }, 1000);
     });
 
     return () => {
-      globalPinMarkers.current.forEach(m => m.remove());
+      globalPinMarkers.current.forEach((m) => m.remove());
       mapInstance.remove();
       map.current = null;
     };
@@ -394,17 +353,22 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
 
     // Auto open sidebar when new pin is logged
     setShowUserSidebar(true);
-    setActiveSidebarPin({ ...userPin, isSelf: true, desc: "You just logged this." });
+    setActiveSidebarPin({
+      ...userPin,
+      isSelf: true,
+      desc: "You just logged this.",
+    });
     setSelectedCountry(null);
 
     // Create a custom DOM element for the pin
     const el = document.createElement("div");
     // Only use cursor-pointer, remove hover:scale to fix jumping issue
-    el.className = "relative flex items-center justify-center w-8 h-8 cursor-pointer group";
-    
+    el.className =
+      "relative flex items-center justify-center w-8 h-8 cursor-pointer group";
+
     const isProcrastinating = userPin.type === "procrastinate";
     const colorClass = isProcrastinating ? "bg-blue-500" : "bg-cyan-400"; // Tự bản thân dùng màu chói và khác 1 chút (Vd: xanh dương neon)
-    
+
     // Create the HTML for the pin without the text and with beautiful pulsing circles
     el.innerHTML = `
       <div class="absolute inset-[-14px] rounded-full ${colorClass} animate-ping opacity-40 pointer-events-none" style="animation-duration: 1.5s;"></div>
@@ -413,17 +377,23 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
     `;
 
     // Handle click on marker to show sidebar
-    el.addEventListener('click', (e) => {
+    el.addEventListener("click", (e) => {
       e.stopPropagation(); // prevent map click event
       setShowUserSidebar(true);
-      setActiveSidebarPin({ ...userPin, isSelf: true, desc: "You just logged this." });
+      setActiveSidebarPin({
+        ...userPin,
+        isSelf: true,
+        desc: "You just logged this.",
+      });
       setSelectedCountry(null);
     });
 
-    userPinMarker.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+    userPinMarker.current = new maplibregl.Marker({
+      element: el,
+      anchor: "center",
+    })
       .setLngLat([userPin.lng, userPin.lat])
       .addTo(map.current);
-
   }, [userPin]);
 
   return (
@@ -477,8 +447,6 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         </div>
       )}
 
-
-
       {/* Side Panel for Detail Info */}
       <div
         className={`absolute top-0 right-0 h-full w-[440px] bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${
@@ -503,8 +471,18 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
                 className="p-2 rounded-full hover:bg-white/10 transition-colors"
                 title="Close"
               >
-                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -513,7 +491,9 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
             <div className="space-y-6">
               {/* Delay Index */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Delay Index / 100</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">
+                  Delay Index / 100
+                </p>
                 <div className="flex items-end gap-2">
                   <span className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-red-400 to-orange-500 drop-shadow-sm">
                     {countryDetails[selectedCountry].delayIndex}
@@ -521,11 +501,11 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
                 </div>
                 {/* Progress bar */}
                 <div className="w-full h-2 bg-gray-800 rounded-full mt-4 overflow-hidden shadow-inner">
-                  <div 
-                    className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000" 
-                    style={{ 
+                  <div
+                    className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000"
+                    style={{
                       width: `${countryDetails[selectedCountry].delayIndex}%`,
-                      boxShadow: "0 0 10px rgba(255, 100, 50, 0.5)"
+                      boxShadow: "0 0 10px rgba(255, 100, 50, 0.5)",
                     }}
                   />
                 </div>
@@ -535,28 +515,66 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between">
                   <div>
-                    <svg className="w-5 h-5 text-blue-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">Top Reason</p>
+                    <svg
+                      className="w-5 h-5 text-blue-400 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">
+                      Top Reason
+                    </p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-100">{countryDetails[selectedCountry].topReason}</p>
+                  <p className="text-sm font-semibold text-gray-100">
+                    {countryDetails[selectedCountry].topReason}
+                  </p>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between">
                   <div>
-                    <svg className="w-5 h-5 text-purple-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">Active Avoidance</p>
+                    <svg
+                      className="w-5 h-5 text-purple-400 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">
+                      Active Avoidance
+                    </p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-100">{countryDetails[selectedCountry].activeAvoidance}</p>
+                  <p className="text-sm font-semibold text-gray-100">
+                    {countryDetails[selectedCountry].activeAvoidance}
+                  </p>
                 </div>
               </div>
 
               {/* Big Number */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center relative overflow-hidden">
-                 <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10" />
-                 <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 relative z-10">Deadlines Missed Today</p>
-                 <p className="text-4xl font-black tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] relative z-10">
-                   {countryDetails[selectedCountry].deadlineMissed.toLocaleString()}
-                 </p>
-                 <p className="text-xs text-green-400 mt-2 font-medium bg-green-400/10 inline-block px-2 py-1 rounded-full relative z-10">+12% since yesterday</p>
+                <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10" />
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 relative z-10">
+                  Deadlines Missed Today
+                </p>
+                <p className="text-4xl font-black tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] relative z-10">
+                  {countryDetails[
+                    selectedCountry
+                  ].deadlineMissed.toLocaleString()}
+                </p>
+                <p className="text-xs text-green-400 mt-2 font-medium bg-green-400/10 inline-block px-2 py-1 rounded-full relative z-10">
+                  +12% since yesterday
+                </p>
               </div>
             </div>
           </div>
@@ -565,96 +583,186 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
 
       {/* Side Panel for User Pin History (Left Side) */}
       <div
-        className={`absolute top-0 left-0 h-full w-90 bg-zinc-950/90 backdrop-blur-xl border-r border-white/10 z-40 transform transition-transform duration-500 ease-in-out ${
-          showUserSidebar && activeSidebarPin ? "translate-x-0" : "-translate-x-full"
+        className={`absolute top-0 right-0 h-full w-[450px] bg-zinc-950/90 backdrop-blur-xl border-r border-white/10 z-40 transform transition-transform duration-500 ease-in-out ${
+          showUserSidebar && activeSidebarPin
+            ? "translate-x-0"
+            : "translate-x-full"
         }`}
       >
         {activeSidebarPin && (
           <div className="flex flex-col h-full text-white overflow-y-auto w-full relative">
-            <div className={`p-6 border-b flex flex-col relative overflow-hidden backdrop-blur-xl min-h-full ${activeSidebarPin.type === 'procrastinate' ? 'bg-red-950/20 border-red-500/30' : 'bg-green-950/20 border-green-500/30'}`}>
-                {/* Glow behind */}
-                <div className={`absolute -top-20 -left-20 w-40 h-40 blur-[80px] rounded-full opacity-50 ${activeSidebarPin.type === 'procrastinate' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+            <div
+              className={`p-6 border-b flex flex-col relative overflow-hidden backdrop-blur-xl min-h-full ${activeSidebarPin.type === "procrastinate" ? "bg-red-950/20 border-red-500/30" : "bg-green-950/20 border-green-500/30"}`}
+            >
+              {/* Glow behind */}
+              <div
+                className={`absolute -top-20 -left-20 w-40 h-40 blur-[80px] rounded-full opacity-50 ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"}`}
+              ></div>
 
-                {/* Header with Close Button */}
-                <div className="flex justify-between items-center mb-8 relative z-10 w-full">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-4 h-4 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)] ${activeSidebarPin.type === 'procrastinate' ? 'bg-red-500' : 'bg-green-500'}`}
-                    />
-                    <h3 className="text-xl font-black tracking-wider uppercase">
-                      {activeSidebarPin.isSelf ? "My Log" : "Global Log"}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setShowUserSidebar(false)}
-                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              {/* Header with Close Button */}
+              <div className="flex justify-between items-center mb-8 relative z-10 w-full">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-4 h-4 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)] ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"}`}
+                  />
+                  <h3 className="text-xl font-black tracking-wider uppercase">
+                    {activeSidebarPin.isSelf ? "My Log" : "Global Log"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowUserSidebar(false)}
+                  className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
 
-                {/* Score */}
-                <div className="flex justify-between items-start mb-6 relative z-10">
-                  <div>
-                    <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${activeSidebarPin.type === 'procrastinate' ? 'text-red-400' : 'text-green-400'}`}>
-                      {activeSidebarPin.type === 'procrastinate' ? 'Guilt Index' : 'Focus Score'}
-                    </p>
-                    <h4 className="text-6xl font-black text-white">{activeSidebarPin.score}<span className="text-xl text-gray-500 font-medium tracking-normal">/100</span></h4>
-                  </div>
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg ${activeSidebarPin.type === 'procrastinate' ? 'border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]'}`}>
-                    {activeSidebarPin.type === 'procrastinate' ? (
-                      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    ) : (
-                      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quotes / Description */}
-                <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
-                  <h5 className="text-xl font-bold text-white mb-1.5 flex flex-col gap-1">
-                    <span>{activeSidebarPin.type === 'procrastinate' ? "Master of Delay 🏆" : "Unstoppable Force 🚀"}</span>
-                    {!activeSidebarPin.isSelf && (
-                      <span className="text-[12px] uppercase text-gray-400 font-medium tracking-widest flex items-center gap-1 opacity-70">
-                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><circle cx="12" cy="11" r="3" fill="currentColor" /></svg>
-                         {activeSidebarPin.country}
-                      </span>
-                    )}
-                  </h5>
-                  <p className="text-sm text-gray-400 italic font-medium">
-                    "{activeSidebarPin.desc || (activeSidebarPin.type === 'procrastinate' 
-                      ? "The deadline is a social construct. Who needs it anyway?" 
-                      : "Look at you, actually doing what you said you would do.")}"
+              {/* Score */}
+              <div className="flex justify-between items-start mb-6 relative z-10">
+                <div>
+                  <p
+                    className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${activeSidebarPin.type === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                  >
+                    {activeSidebarPin.type === "procrastinate"
+                      ? "Guilt Index"
+                      : "Focus Score"}
                   </p>
+                  <h4 className="text-6xl font-black text-white">
+                    {activeSidebarPin.score}
+                    <span className="text-xl text-gray-500 font-medium tracking-normal">
+                      /100
+                    </span>
+                  </h4>
                 </div>
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg ${activeSidebarPin.type === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
+                >
+                  {activeSidebarPin.type === "procrastinate" ? (
+                    <svg
+                      className="w-7 h-7"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-7 h-7"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
 
-                {/* Compare Stats */}
-                <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
-                  <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Global Average</p>
-                    <div>
-                      <p className="text-xl font-bold text-gray-200">
-                        {activeSidebarPin.type === 'procrastinate' ? '72/100' : '65/100'}
-                      </p>
-                      <p className={`text-[11px] font-semibold mt-1 ${activeSidebarPin.score > 72 && activeSidebarPin.type === 'procrastinate' ? 'text-red-400' : 'text-green-400'}`}>
-                        {activeSidebarPin.score > 72 ? '▲ Above avg' : '▼ Below avg'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate" title={activeSidebarPin.country}>{activeSidebarPin.country || 'Local'} Avg</p>
-                    <div>
-                      <p className="text-xl font-bold text-gray-200">
-                        {activeSidebarPin.type === 'procrastinate' ? '85/100' : '60/100'}
-                      </p>
-                      <p className={`text-[11px] font-semibold mt-1 ${(activeSidebarPin.score > 85 && activeSidebarPin.type === 'procrastinate') || (activeSidebarPin.score < 60 && activeSidebarPin.type === 'focus') ? 'text-red-400' : 'text-green-400'}`}>
-                        {activeSidebarPin.score > 85 ? '▲ Setting records' : '▼ Playing safe'}
-                      </p>
-                    </div>
+              {/* Quotes / Description */}
+              <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
+                <h5 className="text-xl font-bold text-white mb-1.5 flex flex-col gap-1">
+                  <span>
+                    {activeSidebarPin.type === "procrastinate"
+                      ? "Master of Delay 🏆"
+                      : "Unstoppable Force 🚀"}
+                  </span>
+                  {!activeSidebarPin.isSelf && (
+                    <span className="text-[12px] uppercase text-gray-400 font-medium tracking-widest flex items-center gap-1 opacity-70">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <circle cx="12" cy="11" r="3" fill="currentColor" />
+                      </svg>
+                      {activeSidebarPin.country}
+                    </span>
+                  )}
+                </h5>
+                <p className="text-sm text-gray-400 italic font-medium">
+                  "
+                  {activeSidebarPin.desc ||
+                    (activeSidebarPin.type === "procrastinate"
+                      ? "The deadline is a social construct. Who needs it anyway?"
+                      : "Look at you, actually doing what you said you would do.")}
+                  "
+                </p>
+              </div>
+
+              {/* Compare Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
+                <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
+                    Global Average
+                  </p>
+                  <div>
+                    <p className="text-xl font-bold text-gray-200">
+                      {activeSidebarPin.type === "procrastinate"
+                        ? "72/100"
+                        : "65/100"}
+                    </p>
+                    <p
+                      className={`text-[11px] font-semibold mt-1 ${activeSidebarPin.score > 72 && activeSidebarPin.type === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                    >
+                      {activeSidebarPin.score > 72
+                        ? "▲ Above avg"
+                        : "▼ Below avg"}
+                    </p>
                   </div>
                 </div>
+                <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
+                  <p
+                    className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate"
+                    title={activeSidebarPin.country}
+                  >
+                    {activeSidebarPin.country || "Local"} Avg
+                  </p>
+                  <div>
+                    <p className="text-xl font-bold text-gray-200">
+                      {activeSidebarPin.type === "procrastinate"
+                        ? "85/100"
+                        : "60/100"}
+                    </p>
+                    <p
+                      className={`text-[11px] font-semibold mt-1 ${(activeSidebarPin.score > 85 && activeSidebarPin.type === "procrastinate") || (activeSidebarPin.score < 60 && activeSidebarPin.type === "focus") ? "text-red-400" : "text-green-400"}`}
+                    >
+                      {activeSidebarPin.score > 85
+                        ? "▲ Setting records"
+                        : "▼ Playing safe"}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
