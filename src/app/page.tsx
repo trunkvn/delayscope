@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Map from "@/components/Map";
 import LogActionModal from "@/components/LogActionModal";
-import Header from "@/components/Header";
 import Quote from "@/components/Quote";
 import Insight from "@/components/Insight";
 import MarqueeLog from "@/components/MarqueeLog";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
 
 export default function Home() {
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -65,11 +66,12 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="w-screen h-screen bg-black overflow-hidden select-none font-sans text-white flex flex-col relative">
+    <main className="w-screen h-screen bg-black overflow-y-auto select-none font-sans text-white flex flex-col relative custom-scrollbar">
+      {/* Main Content Area */}
+
       <Header />
 
-      {/* Main Content Area */}
-      <div className="relative flex-1 w-full bg-black">
+      <div className="relative shrink-0 h-[calc(100vh-82px)] w-full bg-black overflow-hidden">
         {/* Quote - Nhỏ lại & góc trái trên */}
         <Quote
           isMapLoaded={isMapLoaded}
@@ -81,6 +83,8 @@ export default function Home() {
         <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} />
         <MarqueeLog isMapLoaded={isMapLoaded} />
       </div>
+
+      <Footer />
 
       <LogActionModal
         isOpen={isLogModalOpen}
