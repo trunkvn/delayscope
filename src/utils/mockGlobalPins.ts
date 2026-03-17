@@ -1,6 +1,6 @@
 import { baseCities } from "@/mocks/citiesData";
 
-export const mockGlobalPins = Array.from({ length: 200 }).map((_, i) => {
+export const mockGlobalPins = Array.from({ length: 500 }).map((_, i) => {
   const baseCity = baseCities[Math.floor(Math.random() * baseCities.length)];
   const latOffset = (Math.random() - 0.5) * 10; // Càng to thì phân tán càng rộng
   const lngOffset = (Math.random() - 0.5) * 10;

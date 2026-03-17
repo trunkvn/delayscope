@@ -22,9 +22,9 @@ export const calculateDynamicCountryColors = () => {
     // DelayRatio > 0.4 -> Cam (amber-500 rgba)
     // DelayRatio <= 0.4 -> Xanh lá (green-500 rgba)
 
-    if (delayRatio > 0.6) colors[iso] = "rgba(239, 68, 68, 0.45)";
-    else if (delayRatio > 0.4) colors[iso] = "rgba(245, 158, 11, 0.45)";
-    else colors[iso] = "rgba(34, 197, 94, 0.45)";
+    if (delayRatio > 0.6) colors[iso] = "rgba(239, 68, 68, 0.95)";
+    else if (delayRatio > 0.4) colors[iso] = "rgba(245, 158, 11, 0.95)";
+    else colors[iso] = "rgba(34, 197, 94, 0.95)";
   });
 
   return colors;

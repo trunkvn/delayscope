@@ -362,14 +362,14 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-500">
           <div className="relative">
             {/* Outer Ring */}
-            <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
             {/* Inner Glow */}
             <div
-              className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-400 rounded-full animate-spin blur-[2px]"
+              className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-400 rounded-full animate-spin blur-[2px]"
               style={{ animationDuration: "0.8s" }}
             ></div>
           </div>
-          <p className="mt-6 text-blue-100/80 font-medium tracking-widest text-sm uppercase animate-pulse">
+          <p className="mt-6 text-blue-100/80 font-medium tracking-widest text-xs uppercase animate-pulse">
             Loading world map...
           </p>
 

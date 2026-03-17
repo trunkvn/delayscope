@@ -77,8 +77,6 @@ export default function Home() {
           setIsLogModalOpen={setIsLogModalOpen}
         />
 
-        {/* Right Sidebar - Global Insights 24h & Details */}
-
         <Insight isMapLoaded={isMapLoaded} />
         <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} />
         <MarqueeLog isMapLoaded={isMapLoaded} />
