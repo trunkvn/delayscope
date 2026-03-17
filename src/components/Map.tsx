@@ -118,6 +118,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
           }
         }
         setSelectedCountry(null);
+        setShowUserSidebar(false);
       });
 
       setIsLoading(false);
