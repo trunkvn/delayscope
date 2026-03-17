@@ -402,9 +402,8 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         </div>
       )}
 
-      {/* Side Panel for Detail Info */}
       <div
-        className={`absolute top-0 right-0 h-full w-[440px] bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${
+        className={`absolute top-0 right-0 h-full w-full md:w-[440px] bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${
           selectedCountry ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -536,9 +535,8 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         )}
       </div>
 
-      {/* Side Panel for User Pin History (Left Side) */}
       <div
-        className={`absolute top-0 right-0 h-full w-[450px] bg-zinc-950/90 backdrop-blur-xl border-r border-white/10 z-40 transform transition-transform duration-500 ease-in-out ${
+        className={`absolute top-0 right-0 h-full w-full md:w-[450px] bg-zinc-950/90 backdrop-blur-xl border-r border-white/10 z-40 transform transition-transform duration-500 ease-in-out ${
           showUserSidebar && activeSidebarPin
             ? "translate-x-0"
             : "translate-x-full"

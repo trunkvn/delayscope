@@ -16,10 +16,12 @@ export const translations: Partial<Record<Language, any>> = {
     common: {
       beta: "BETA",
       backToMap: "Back to the Map",
+      comingSoon: "Coming Soon",
     },
     nav: {
       insights: "Insights",
       about: "About",
+      getApp: "Get App",
     },
     home: {
       trackerTag: "Global Activity Tracker",
@@ -201,10 +203,12 @@ export const translations: Partial<Record<Language, any>> = {
     common: {
       beta: "BETA",
       backToMap: "Quay lại bản đồ",
+      comingSoon: "Sắp ra mắt",
     },
     nav: {
       insights: "Thống kê",
       about: "Về chúng tôi",
+      getApp: "Tải App",
     },
     home: {
       trackerTag: "Theo dõi hoạt động toàn cầu",
@@ -389,10 +393,12 @@ export const translations: Partial<Record<Language, any>> = {
     common: {
       beta: "ベータ",
       backToMap: "マップに戻る",
+      comingSoon: "まもなく登場",
     },
     nav: {
       insights: "インサイト",
       about: "プロジェクトについて",
+      getApp: "アプリを入手",
     },
     home: {
       trackerTag: "グローバルアクティビティトラッカー",
@@ -577,10 +583,12 @@ export const translations: Partial<Record<Language, any>> = {
     common: {
       beta: "베타",
       backToMap: "지도로 돌아가기",
+      comingSoon: "곧 출시",
     },
     nav: {
       insights: "통계",
       about: "프로젝트 정보",
+      getApp: "앱 받기",
     },
     home: {
       trackerTag: "글로벌 활동 트래커",

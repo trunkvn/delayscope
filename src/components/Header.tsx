@@ -6,27 +6,35 @@ import { languages } from "@/constants/translations";
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const currentLang = languages.find((l) => l.code === language) || languages[0];
+  const currentLang =
+    languages.find((l) => l.code === language) || languages[0];
 
   return (
-    <header className="w-full shrink-0 flex items-center justify-between px-8 py-5 bg-zinc-950 border-b border-white/10 relative z-50">
-      <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-        <div className="relative flex items-center justify-center w-8 h-8">
+    <header className="w-full shrink-0 flex items-center justify-between px-4 md:px-8 py-4 md:py-5 bg-zinc-950 border-b border-white/10 relative z-50">
+      <Link
+        href="/"
+        className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity"
+      >
+        <div className="relative flex items-center justify-center w-6 h-6 md:w-8 md:h-8">
           <div className="absolute inset-0 rounded-full bg-blue-500 blur-sm opacity-70 animate-pulse"></div>
-          <div className="w-3 h-3 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] relative z-10"></div>
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] relative z-10"></div>
         </div>
-        <h1 className="text-xl font-bold tracking-wider text-white drop-shadow-md uppercase flex items-center gap-2">
-          <span>
-            {t("header.title")}<span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-medium">{t("header.subtitle")}</span>
+        <h1 className="text-lg md:text-xl font-bold tracking-wider text-white drop-shadow-md uppercase flex items-center gap-2">
+          <span className="truncate max-w-[120px] md:max-w-none">
+            {t("header.title")}
+            <span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-medium">
+              {t("header.subtitle")}
+            </span>
           </span>
-          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[9px] font-black tracking-widest">
+          <span className="px-1.5 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/50 text-blue-400 text-[8px] md:text-[9px] font-black tracking-widest">
             {t("common.beta")}
           </span>
         </h1>
       </Link>
 
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-4 md:gap-8">
         <nav className="hidden md:flex items-center gap-8">
           <Link
             href="/insights"
@@ -40,16 +48,25 @@ const Header = () => {
           >
             {t("nav.about")}
           </Link>
+          <Link
+            href="/"
+            className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300 flex items-center gap-2 group"
+          >
+            {t("nav.getApp")}
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[8px] font-black tracking-widest uppercase group-hover:bg-amber-500/20 transition-all">
+              {t("common.comingSoon")}
+            </span>
+          </Link>
         </nav>
 
         {/* Language Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsLangOpen(!isLangOpen)}
-            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 hover:bg-white/10 transition-all group pointer-events-auto"
+            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 md:px-4 py-1.5 hover:bg-white/10 transition-all group pointer-events-auto"
           >
             <span className="text-sm">{currentLang.flag}</span>
-            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest group-hover:text-white transition-colors">
+            <span className="hidden xs:inline text-[10px] font-bold text-gray-300 uppercase tracking-widest group-hover:text-white transition-colors">
               {currentLang.code}
             </span>
             <svg
@@ -58,7 +75,12 @@ const Header = () => {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -66,11 +88,11 @@ const Header = () => {
           {isLangOpen && (
             <>
               {/* Click-out barrier */}
-              <div 
-                className="fixed inset-0 z-40 bg-transparent" 
+              <div
+                className="fixed inset-0 z-40 bg-transparent"
                 onClick={() => setIsLangOpen(false)}
               ></div>
-              
+
               <div className="absolute right-0 mt-3 w-48 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="grid grid-cols-1 gap-1 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {languages.map((lang) => (
@@ -88,7 +110,9 @@ const Header = () => {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{lang.flag}</span>
-                        <span className="text-xs font-bold tracking-wide">{lang.name}</span>
+                        <span className="text-xs font-bold tracking-wide">
+                          {lang.name}
+                        </span>
                       </div>
                       {language === lang.code && (
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
@@ -100,7 +124,55 @@ const Header = () => {
             </>
           )}
         </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden flex flex-col gap-1.5 p-2"
+        >
+          <div
+            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
+          ></div>
+          <div
+            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "opacity-0" : ""}`}
+          ></div>
+          <div
+            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
+          ></div>
+        </button>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 top-[73px] bg-zinc-950 z-50 md:hidden animate-in slide-in-from-right duration-300 p-8 flex flex-col gap-8 border-t border-white/10">
+          <nav className="flex flex-col gap-6">
+            <Link
+              href="/insights"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-2xl font-black text-white uppercase tracking-tighter"
+            >
+              {t("nav.insights")}
+            </Link>
+            <Link
+              href="/about"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-2xl font-black text-white uppercase tracking-tighter"
+            >
+              {t("nav.about")}
+            </Link>
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3"
+            >
+              {t("nav.getApp")}
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/50 text-amber-500 text-[10px] font-black tracking-widest uppercase">
+                {t("common.comingSoon")}
+              </span>
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 };

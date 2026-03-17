@@ -21,7 +21,7 @@ const MarqueeLog = ({ isMapLoaded }: { isMapLoaded: boolean }) => {
 
   return (
     <div
-      className={`absolute bottom-8 left-8 right-[430px] z-30 flex flex-col gap-2 pointer-events-none delay-300 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
+      className={`absolute bottom-6 left-4 md:left-8 right-4 md:right-[430px] z-30 flex flex-col gap-2 pointer-events-none delay-300 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
     >
       {/* Static Title ABOVE the bar */}
       <div className="flex items-center gap-2 pl-4">

@@ -69,12 +69,10 @@ export default function Home() {
 
   return (
     <main className="w-screen h-screen bg-black overflow-y-auto select-none font-sans text-white flex flex-col relative custom-scrollbar">
-      {/* Main Content Area */}
-
       <Header />
 
-      <div className="relative shrink-0 h-[calc(100vh-82px)] w-full bg-black overflow-hidden">
-        {/* Quote - Nhỏ lại & góc trái trên */}
+      <div className="relative shrink-0 h-[calc(100vh-73px)] md:h-[calc(100vh-82px)] w-full bg-black overflow-hidden">
+        {/* Quote */}
         <Quote
           isMapLoaded={isMapLoaded}
           locationStatus={locationStatus}

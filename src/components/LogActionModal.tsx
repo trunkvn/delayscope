@@ -56,10 +56,10 @@ export default function LogActionModal({
       {/* Modal Card */}
       <div className="relative w-full max-w-lg bg-zinc-900 border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col transform transition-all">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-white/10 bg-zinc-950/50">
-          <div className="flex items-center gap-3">
+        <div className="flex justify-between items-center p-4 md:p-6 border-b border-white/10 bg-zinc-950/50">
+          <div className="flex items-center gap-2 md:gap-3">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            <h2 className="text-lg font-bold tracking-wider text-white uppercase">
+            <h2 className="text-sm md:text-lg font-bold tracking-wider text-white uppercase truncate">
               {t("modal.logStatus")}
             </h2>
           </div>
@@ -84,29 +84,29 @@ export default function LogActionModal({
         </div>
 
         {/* Content */}
-        <div className="p-8 min-h-[300px] flex flex-col justify-center">
+        <div className="p-4 md:p-8 min-h-[300px] flex flex-col justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]">
           {/* STEP 1 */}
           {step === 1 && (
             <div className="animate-modal-up">
-              <h3 className="text-2xl font-black text-center mb-2">
+              <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2">
                 {t("modal.stateQuestion")}
               </h3>
-              <p className="text-gray-400 text-center mb-8 text-sm">
+              <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm">
                 {t("modal.stateSub")}
               </p>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 md:gap-4">
                 <button
                   onClick={() => {
                     setActionType("procrastinate");
                     handleNext();
                   }}
-                  className="group relative px-6 py-4 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all flex items-center gap-4 overflow-hidden"
+                  className="group relative px-4 md:px-6 py-3 md:py-4 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all flex items-center gap-3 md:gap-4 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                  <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50 text-red-400 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50 text-red-400 group-hover:scale-110 transition-transform shrink-0">
                     <svg
-                      className="w-6 h-6"
+                      className="w-5 h-5 md:w-6 md:h-6"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -120,10 +120,10 @@ export default function LogActionModal({
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-red-100 text-lg">
+                    <p className="font-bold text-red-100 text-base md:text-lg">
                       {t("modal.procrastinating")}
                     </p>
-                    <p className="text-sm text-red-300/60">
+                    <p className="text-[11px] md:text-sm text-red-300/60 leading-tight">
                       {t("modal.proDescription")}
                     </p>
                   </div>
@@ -134,12 +134,12 @@ export default function LogActionModal({
                     setActionType("focus");
                     handleNext();
                   }}
-                  className="group relative px-6 py-4 rounded-xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-all flex items-center gap-4 overflow-hidden"
+                  className="group relative px-4 md:px-6 py-3 md:py-4 rounded-xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-all flex items-center gap-3 md:gap-4 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50 text-green-400 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50 text-green-400 group-hover:scale-110 transition-transform shrink-0">
                     <svg
-                      className="w-6 h-6"
+                      className="w-5 h-5 md:w-6 md:h-6"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -153,8 +153,8 @@ export default function LogActionModal({
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-green-100 text-lg">{t("modal.focusing")}</p>
-                    <p className="text-sm text-green-300/60">
+                    <p className="font-bold text-green-100 text-base md:text-lg">{t("modal.focusing")}</p>
+                    <p className="text-[11px] md:text-sm text-green-300/60 leading-tight">
                       {t("modal.focusDescription")}
                     </p>
                   </div>
@@ -166,12 +166,12 @@ export default function LogActionModal({
           {/* STEP 2 */}
           {step === 2 && (
             <div className="animate-modal-left">
-              <h3 className="text-2xl font-black text-center mb-2">
+              <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2">
                 {actionType === "procrastinate"
                   ? t("modal.insteadQuestion")
                   : t("modal.workingQuestion")}
               </h3>
-              <p className="text-gray-400 text-center mb-8 text-sm">
+              <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm">
                 {actionType === "procrastinate"
                   ? t("modal.confessSins")
                   : t("modal.impressUs")}
@@ -239,15 +239,15 @@ export default function LogActionModal({
                 <div className="flex justify-between items-start mb-6 relative z-10">
                   <div>
                     <p
-                      className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                      className={`text-[9px] md:text-[10px] uppercase tracking-widest font-bold mb-1 ${actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
                     >
                       {actionType === "procrastinate"
                         ? t("modal.guiltIndex")
                         : t("modal.focusScore")}
                     </p>
-                    <h4 className="text-6xl font-black text-white">
+                    <h4 className="text-4xl md:text-6xl font-black text-white">
                       {score}
-                      <span className="text-xl text-gray-500 font-medium tracking-normal">
+                      <span className="text-base md:text-xl text-gray-500 font-medium tracking-normal">
                         /100
                       </span>
                     </h4>
