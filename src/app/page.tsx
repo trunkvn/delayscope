@@ -8,8 +8,10 @@ import Insight from "@/components/Insight";
 import MarqueeLog from "@/components/MarqueeLog";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Home() {
+  const { t } = useLanguage();
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [locationStatus, setLocationStatus] = useState<
     "checking" | "granted" | "denied"

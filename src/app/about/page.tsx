@@ -1,9 +1,14 @@
+"use client";
+
 import React from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function AboutPage() {
+  const { t } = useLanguage();
+
   return (
     <main className="w-screen h-screen bg-black overflow-y-auto font-sans text-white flex flex-col relative custom-scrollbar">
       <Header />
@@ -20,28 +25,28 @@ export default function AboutPage() {
           <div className="space-y-6 text-center">
             <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/5 backdrop-blur-md animate-fade-in-up">
               <span className="text-xs font-bold tracking-[0.2em] text-blue-400 uppercase">
-                The Science of Getting Nothing Done
+                {t("about.heroTagline")}
               </span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter animate-fade-in-up transition-all delay-100">
-              Why <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-500 to-pink-500">DelayScope</span>?
+              {t("about.heroTitle").split("DelayScope")[0]} <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-500 to-pink-500">DelayScope</span>?
             </h1>
             
             <p className="text-xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-200">
-              We live in a world of constant distractions. DelayScope is more than just a map; it's a mirror reflecting our global collective struggle with focus and intention.
+              {t("about.heroDesc")}
             </p>
           </div>
 
           {/* Core Concept */}
           <div className="grid md:grid-cols-2 gap-12 items-center py-10 animate-fade-in-up delay-300">
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold border-l-4 border-blue-500 pl-6">The Concept</h2>
+              <h2 className="text-3xl font-bold border-l-4 border-blue-500 pl-6">{t("about.conceptTitle")}</h2>
               <p className="text-gray-400 leading-relaxed">
-                Procrastination isn't just about being "lazy." It's an emotional regulation problem. When we face tasks that feel overwhelming or boring, our brains seek immediate relief through "Action Avoidance."
+                {t("about.conceptDesc1")}
               </p>
               <p className="text-gray-400 leading-relaxed">
-                DelayScope visualizes this in real-time. Every red dot on our map represents a moment someone chose a distraction over their intention. Every green dot represents a victory for deep work.
+                {t("about.conceptDesc2")}
               </p>
             </div>
             <div className="relative group">
@@ -50,14 +55,14 @@ export default function AboutPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-                    <span className="text-sm font-medium text-gray-300 uppercase tracking-widest">Delay Traps</span>
+                    <span className="text-sm font-medium text-gray-300 uppercase tracking-widest">{t("about.delayTraps")}</span>
                   </div>
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-red-500 w-[85%]"></div>
                   </div>
                   <div className="flex items-center gap-4 pt-4">
                     <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-                    <span className="text-sm font-medium text-gray-300 uppercase tracking-widest">Focus Flow</span>
+                    <span className="text-sm font-medium text-gray-300 uppercase tracking-widest">{t("about.focusFlow")}</span>
                   </div>
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-green-500 w-[15%]"></div>
@@ -69,12 +74,12 @@ export default function AboutPage() {
 
           {/* How It Works */}
           <div className="space-y-12 py-10 animate-fade-in-up delay-350">
-            <h2 className="text-3xl font-bold text-center">How It Works</h2>
+            <h2 className="text-3xl font-bold text-center">{t("about.howItWorksTitle")}</h2>
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { step: "01", title: "Log Status", desc: "Tell us if you're deep in focus or currently 'mastering' the art of delay." },
-                { step: "02", title: "Geo-Tag", desc: "We use approximate location to place a glowing orb on the global map." },
-                { step: "03", title: "Visualize", desc: "See the global pulse. Red zones signify high distraction, Green zones show flow." }
+                { step: "01", title: t("about.step1Title"), desc: t("about.step1Desc") },
+                { step: "02", title: t("about.step2Title"), desc: t("about.step2Desc") },
+                { step: "03", title: t("about.step3Title"), desc: t("about.step3Desc") }
               ].map((item, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors group">
                   <span className="text-4xl font-black text-blue-500/30 group-hover:text-blue-500/60 transition-colors">{item.step}</span>
@@ -95,9 +100,9 @@ export default function AboutPage() {
                    </svg>
                 </div>
                 <div className="space-y-4">
-                   <h2 className="text-3xl font-bold italic">100% Anonymous by Design</h2>
+                   <h2 className="text-3xl font-bold italic">{t("about.privacyTitle")}</h2>
                    <p className="text-gray-400 leading-relaxed">
-                      We don't know who you are, and we don't want to. DelayScope does not store IP addresses, names, or exact GPS coordinates. Your location is fuzzied to a city level to ensure your home remains your private sanctuary.
+                      {t("about.privacyDesc")}
                    </p>
                 </div>
              </div>
@@ -105,12 +110,12 @@ export default function AboutPage() {
 
           {/* FAQ */}
           <div className="space-y-8 animate-fade-in-up delay-450">
-             <h2 className="text-3xl font-bold text-center">Frequently Asked Questions</h2>
+             <h2 className="text-3xl font-bold text-center">{t("about.faqTitle")}</h2>
              <div className="space-y-4 max-w-2xl mx-auto">
                 {[
-                   { q: "Is this real data?", a: "Yes, every point on the map is generated by real users logging their status right now." },
-                   { q: "Why is my country so red?", a: "Red zones indicate a high ratio of 'Delaying' status. Maybe it's lunchtime, or a popular show just dropped!" },
-                   { q: "How can I improve the global score?", a: "Log a 'Focused' session! Every focus log helps push the world toward productivity." }
+                   { q: t("about.faq1Q"), a: t("about.faq1A") },
+                   { q: t("about.faq2Q"), a: t("about.faq2A") },
+                   { q: t("about.faq3Q"), a: t("about.faq3A") }
                 ].map((faq, i) => (
                    <div key={i} className="border border-white/10 rounded-xl overflow-hidden">
                       <div className="bg-white/5 p-4 font-bold text-sm text-blue-300 tracking-wide uppercase">{faq.q}</div>
@@ -122,15 +127,15 @@ export default function AboutPage() {
 
           {/* Mission */}
           <div className="bg-linear-to-br from-zinc-900 to-black border border-white/10 rounded-3xl p-12 text-center space-y-8 animate-fade-in-up delay-500">
-            <h2 className="text-4xl font-black italic tracking-tight">Our Mission</h2>
+            <h2 className="text-4xl font-black italic tracking-tight">{t("about.missionTitle")}</h2>
             <p className="text-2xl text-blue-100/80 font-medium italic leading-relaxed">
-              "To make the invisible struggle with procrastination visible, and to build a global community of focus."
+              {t("about.missionText")}
             </p>
             <Link 
               href="/"
               className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full transition-all hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
             >
-              Back to the Map
+              {t("common.backToMap")}
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -140,7 +145,7 @@ export default function AboutPage() {
           {/* Footer Info */}
           <div className="text-center pt-20 border-t border-white/5 animate-fade-in-up delay-500">
             <p className="text-sm text-gray-500 uppercase tracking-[0.4em]">
-              Designed for the distracted. Built for the focused.
+              {t("about.footerTagline")}
             </p>
             <p className="mt-4 text-[10px] text-gray-600 font-mono">
               &copy; 2026 DELAYSCOPE LABS. VERSION 1.0.4-BETA

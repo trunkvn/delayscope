@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface LogActionModalProps {
   isOpen: boolean;
@@ -13,6 +16,7 @@ export default function LogActionModal({
   userLocation,
   onSeePin,
 }: LogActionModalProps) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [score, setScore] = useState(0);
   const [actionType, setActionType] = useState<
@@ -56,7 +60,7 @@ export default function LogActionModal({
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
             <h2 className="text-lg font-bold tracking-wider text-white uppercase">
-              Log Your Status
+              {t("modal.logStatus")}
             </h2>
           </div>
           <button
@@ -85,10 +89,10 @@ export default function LogActionModal({
           {step === 1 && (
             <div className="animate-modal-up">
               <h3 className="text-2xl font-black text-center mb-2">
-                What is your current state?
+                {t("modal.stateQuestion")}
               </h3>
               <p className="text-gray-400 text-center mb-8 text-sm">
-                Be honest. DelayScope sees all.
+                {t("modal.stateSub")}
               </p>
 
               <div className="flex flex-col gap-4">
@@ -117,10 +121,10 @@ export default function LogActionModal({
                   </div>
                   <div className="text-left">
                     <p className="font-bold text-red-100 text-lg">
-                      Procrastinating
+                      {t("modal.procrastinating")}
                     </p>
                     <p className="text-sm text-red-300/60">
-                      I am actively avoiding my responsibilities
+                      {t("modal.proDescription")}
                     </p>
                   </div>
                 </button>
@@ -149,9 +153,9 @@ export default function LogActionModal({
                     </svg>
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-green-100 text-lg">Focusing</p>
+                    <p className="font-bold text-green-100 text-lg">{t("modal.focusing")}</p>
                     <p className="text-sm text-green-300/60">
-                      I am actually getting work done
+                      {t("modal.focusDescription")}
                     </p>
                   </div>
                 </button>
@@ -164,13 +168,13 @@ export default function LogActionModal({
             <div className="animate-modal-left">
               <h3 className="text-2xl font-black text-center mb-2">
                 {actionType === "procrastinate"
-                  ? "What are you doing instead?"
-                  : "What are you working on?"}
+                  ? t("modal.insteadQuestion")
+                  : t("modal.workingQuestion")}
               </h3>
               <p className="text-gray-400 text-center mb-8 text-sm">
                 {actionType === "procrastinate"
-                  ? "Confess your sins."
-                  : "Impress us with your productivity."}
+                  ? t("modal.confessSins")
+                  : t("modal.impressUs")}
               </p>
 
               <input
@@ -178,8 +182,8 @@ export default function LogActionModal({
                 autoFocus
                 placeholder={
                   actionType === "procrastinate"
-                    ? "e.g. Watching cat videos on TikTok"
-                    : "e.g. Finishing Q3 Financial Report"
+                    ? t("modal.placeholderPro")
+                    : t("modal.placeholderFocus")
                 }
                 value={activityInput}
                 onChange={(e) => setActivityInput(e.target.value)}
@@ -191,14 +195,14 @@ export default function LogActionModal({
                   onClick={() => setStep(1)}
                   className="px-5 py-2 rounded-lg text-gray-400 hover:text-white transition-colors"
                 >
-                  Back
+                  {t("modal.back")}
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={activityInput.trim().length === 0}
                   className="px-6 py-2 rounded-lg bg-white text-black font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
                 >
-                  Submit Log
+                  {t("modal.submit")}
                 </button>
               </div>
             </div>
@@ -212,10 +216,10 @@ export default function LogActionModal({
                 <div className="w-8 h-8 rounded-full bg-blue-400 animate-pulse relative z-10" />
               </div>
               <h3 className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-purple-500 mb-4">
-                Syncing Data...
+                {t("modal.syncing")}
               </h3>
               <p className="text-gray-400">
-                Broadcasting your status to the DelayScope network.
+                {t("modal.syncingSub")}
               </p>
             </div>
           )}
@@ -238,8 +242,8 @@ export default function LogActionModal({
                       className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
                     >
                       {actionType === "procrastinate"
-                        ? "Guilt Index"
-                        : "Focus Score"}
+                        ? t("modal.guiltIndex")
+                        : t("modal.focusScore")}
                     </p>
                     <h4 className="text-6xl font-black text-white">
                       {score}
@@ -287,14 +291,14 @@ export default function LogActionModal({
                 <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
                   <h5 className="text-xl font-bold text-white mb-1.5">
                     {actionType === "procrastinate"
-                      ? "Master of Delay 🏆"
-                      : "Unstoppable Force 🚀"}
+                      ? t("modal.masterDelay")
+                      : t("modal.unstoppableForce")}
                   </h5>
                   <p className="text-sm text-gray-400 italic font-medium">
                     "
                     {actionType === "procrastinate"
-                      ? "The deadline is a social construct. Who needs it anyway?"
-                      : "Look at you, actually doing what you said you would do."}
+                      ? t("modal.proQuote")
+                      : t("modal.focusQuote")}
                     "
                   </p>
                 </div>
@@ -303,7 +307,7 @@ export default function LogActionModal({
                 <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
                   <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                      Global Average
+                      {t("modal.globalAvg")}
                     </p>
                     <div>
                       <p className="text-xl font-bold text-gray-200">
@@ -312,7 +316,7 @@ export default function LogActionModal({
                       <p
                         className={`text-[11px] font-semibold mt-1 ${score > 72 && actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
                       >
-                        {score > 72 ? "▲ Above avg" : "▼ Below avg"}
+                        {score > 72 ? `▲ ${t("modal.aboveAvg")}` : `▼ ${t("modal.belowAvg")}`}
                       </p>
                     </div>
                   </div>
@@ -321,7 +325,7 @@ export default function LogActionModal({
                       className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate"
                       title={userLocation?.country}
                     >
-                      {userLocation?.country || "Local"} Avg
+                      {userLocation?.country || "Local"} {t("modal.localAvg")}
                     </p>
                     <div>
                       <p className="text-xl font-bold text-gray-200">
@@ -330,7 +334,7 @@ export default function LogActionModal({
                       <p
                         className={`text-[11px] font-semibold mt-1 ${(score > 85 && actionType === "procrastinate") || (score < 60 && actionType === "focus") ? "text-red-400" : "text-green-400"}`}
                       >
-                        {score > 85 ? "▲ Setting records" : "▼ Playing safe"}
+                        {score > 85 ? `▲ ${t("modal.settingRecords")}` : `▼ ${t("modal.playingSafe")}`}
                       </p>
                     </div>
                   </div>
@@ -359,7 +363,7 @@ export default function LogActionModal({
                     />
                     <circle cx="12" cy="11" r="3" fill="currentColor" />
                   </svg>
-                  See Your Pin on Map
+                  {t("modal.seePin")}
                 </button>
               </div>
             </div>

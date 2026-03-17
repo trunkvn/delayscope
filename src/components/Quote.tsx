@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const Quote = ({
   isMapLoaded,
@@ -9,28 +12,29 @@ const Quote = ({
   locationStatus: "checking" | "granted" | "denied";
   setIsLogModalOpen: (open: boolean) => void;
 }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="absolute top-6 left-8 z-10 pointer-events-none flex flex-col items-start max-w-sm">
       <div
         className={`inline-block mb-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md delay-100 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
       >
         <span className="text-[10px] font-semibold tracking-widest text-blue-300 uppercase">
-          Global Activity Tracker
+          {t("home.trackerTag")}
         </span>
       </div>
       <h2
         className={`text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-br from-white via-gray-200 to-gray-500 drop-shadow-md leading-tight text-left delay-200 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
       >
-        Global Rhythm <br />
+        {t("home.rhythmLine1")} <br />
         <span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          ACTION VS DELAY
+          {t("home.rhythmLine2")}
         </span>
       </h2>
       <p
         className={`mt-2 text-gray-400 text-sm font-light tracking-wide text-shadow-sm text-left delay-300 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
       >
-        A real-time visualization of focused deep work vs delayed intentions
-        across the globe.
+        {t("home.rhythmSub")}
       </p>
 
       <button
@@ -59,10 +63,10 @@ const Quote = ({
 
         <span className="relative font-bold text-white tracking-widest text-sm uppercase">
           {locationStatus === "checking"
-            ? "Locating..."
+            ? t("home.statusLocating")
             : locationStatus === "denied"
-              ? "Location Required"
-              : "Log Your Status"}
+              ? t("home.statusRequired")
+              : t("home.statusLog")}
         </span>
 
         {locationStatus === "granted" && (

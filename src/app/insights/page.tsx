@@ -1,36 +1,55 @@
+"use client";
+
 import React from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function InsightsPage() {
+  const { t } = useLanguage();
+
   // Mock data for the detailed insights
   const stats = [
-    { label: "Total Active Users", value: "1.2M", trend: "+15%", color: "text-blue-400" },
-    { label: "Hours Saved Globally", value: "852k", trend: "+8.2%", color: "text-green-400" },
-    { label: "Avg Focus Span", value: "42m", trend: "-2.4%", color: "text-amber-400" },
-    { label: "Global Guilt Index", value: "68/100", trend: "+5.1%", color: "text-red-400" },
+    { label: t("insightsPage.totalUsers"), value: "1.2M", trend: "+15%", color: "text-blue-400" },
+    { label: t("insightsPage.hoursSaved"), value: "852k", trend: "+8.2%", color: "text-green-400" },
+    { label: t("insightsPage.avgFocus"), value: "42m", trend: "-2.4%", color: "text-amber-400" },
+    { label: t("insightsPage.guiltIndex"), value: "68/100", trend: "+5.1%", color: "text-red-400" },
   ];
 
   const rankings = [
-    { country: "Japan", focus: 82, status: "Hall of Fame", flag: "🇯🇵" },
-    { country: "Germany", focus: 78, status: "Hall of Fame", flag: "🇩🇪" },
-    { country: "Vietnam", focus: 75, status: "Hall of Fame", flag: "🇻🇳" },
-    { country: "USA", focus: 45, status: "Wall of Shame", flag: "🇺🇸" },
-    { country: "Brazil", focus: 38, status: "Wall of Shame", flag: "🇧🇷" },
-    { country: "Italy", focus: 32, status: "Wall of Shame", flag: "🇮🇹" },
+    { country: "Japan", focus: 82, status: t("insightsPage.hallOfFame"), flag: "🇯🇵" },
+    { country: "Germany", focus: 78, status: t("insightsPage.hallOfFame"), flag: "🇩🇪" },
+    { country: "Vietnam", focus: 75, status: t("insightsPage.hallOfFame"), flag: "🇻🇳" },
+    { country: "USA", focus: 45, status: t("insightsPage.wallOfShame"), flag: "🇺🇸" },
+    { country: "Brazil", focus: 38, status: t("insightsPage.wallOfShame"), flag: "🇧🇷" },
+    { country: "Italy", focus: 32, status: t("insightsPage.wallOfShame"), flag: "🇮🇹" },
+  ];
+
+  const distractionTags = [
+    { tag: t("insightsPage.tags.anime"), size: "text-2xl", weight: "font-black" },
+    { tag: t("insightsPage.tags.tiktok"), size: "text-3xl", weight: "font-black" },
+    { tag: t("insightsPage.tags.tea"), size: "text-lg", weight: "font-bold" },
+    { tag: t("insightsPage.tags.youtube"), size: "text-xl", weight: "font-bold" },
+    { tag: t("insightsPage.tags.wall"), size: "text-sm", weight: "font-medium" },
+    { tag: t("insightsPage.tags.coffee"), size: "text-lg", weight: "font-bold" },
+    { tag: t("insightsPage.tags.shopping"), size: "text-2xl", weight: "font-black" },
+    { tag: t("insightsPage.tags.reels"), size: "text-xl", weight: "font-bold" },
+    { tag: t("insightsPage.tags.desktop"), size: "text-xs", weight: "font-light" },
+    { tag: t("insightsPage.tags.twitter"), size: "text-lg", weight: "font-bold" },
   ];
 
   return (
     <main className="w-screen h-screen bg-black overflow-y-auto font-sans text-white flex flex-col relative custom-scrollbar">
+      <Header />
 
-      <div className="flex-1 max-w-6xl mx-auto px-8 py-16 w-full">
+      <div className="flex-1 max-w-6xl mx-auto px-8 py-16 w-full mt-20">
         <header className="mb-16 space-y-4 text-center">
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter animate-fade-in-up">
             World <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-500">Focus Report</span>
           </h1>
           <p className="text-gray-400 max-w-2xl mx-auto animate-fade-in-up delay-100 italic">
-            "An analytical deep dive into the collective heartbeat of human productivity."
+            "{t("insightsPage.reportDesc")}"
           </p>
         </header>
 
@@ -53,15 +72,15 @@ export default function InsightsPage() {
           {/* Main Chart Area (Simulated) */}
           <div className="lg:col-span-2 bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl animate-fade-in-up delay-300">
             <div className="flex justify-between items-center mb-10">
-              <h2 className="text-xl font-bold tracking-tight">Focus Trends (24h)</h2>
+              <h2 className="text-xl font-bold tracking-tight">{t("insightsPage.focusTrends")}</h2>
               <div className="flex gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-[10px] uppercase text-gray-500 font-bold tracking-widest">Focus</span>
+                  <span className="text-[10px] uppercase text-gray-500 font-bold tracking-widest">{t("insightsPage.focus")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-[10px] uppercase text-gray-500 font-bold tracking-widest">Delay</span>
+                  <span className="text-[10px] uppercase text-gray-500 font-bold tracking-widest">{t("insightsPage.delay")}</span>
                 </div>
               </div>
             </div>
@@ -92,7 +111,7 @@ export default function InsightsPage() {
 
           {/* Regional Leaderboard */}
           <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl animate-fade-in-up delay-400">
-            <h2 className="text-xl font-bold tracking-tight mb-8">Focus Index</h2>
+            <h2 className="text-xl font-bold tracking-tight mb-8">{t("insightsPage.focusIndex")}</h2>
             <div className="space-y-6">
               {rankings.map((target, i) => (
                 <div key={i} className="flex items-center justify-between group">
@@ -100,7 +119,7 @@ export default function InsightsPage() {
                     <span className="text-xl grayscale group-hover:grayscale-0 transition-all">{target.flag}</span>
                     <div>
                       <p className="text-sm font-bold text-gray-200">{target.country}</p>
-                      <p className={`text-[9px] uppercase font-black tracking-widest ${target.status === 'Hall of Fame' ? 'text-green-500' : 'text-red-500 animate-pulse'}`}>
+                      <p className={`text-[9px] uppercase font-black tracking-widest ${target.status === t("insightsPage.hallOfFame") ? 'text-green-500' : 'text-red-500 animate-pulse'}`}>
                         {target.status}
                       </p>
                     </div>
@@ -124,21 +143,10 @@ export default function InsightsPage() {
         <div className="grid md:grid-cols-2 gap-8 animate-fade-in-up delay-500">
            <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
              <h2 className="text-xl font-bold tracking-tight mb-6 flex items-center gap-2">
-               <span className="text-red-500">🔥</span> Global Distraction Cloud
+               <span className="text-red-500">🔥</span> {t("insightsPage.distractionCloud")}
              </h2>
              <div className="flex flex-wrap gap-2">
-                {[
-                  { tag: "Watching Anime", size: "text-2xl", weight: "font-black" },
-                  { tag: "Tiktok", size: "text-3xl", weight: "font-black" },
-                  { tag: "Tea Break", size: "text-lg", weight: "font-bold" },
-                  { tag: "Youtube Shorts", size: "text-xl", weight: "font-bold" },
-                  { tag: "Staring at Wall", size: "text-sm", weight: "font-medium" },
-                  { tag: "Making 5th Coffee", size: "text-lg", weight: "font-bold" },
-                  { tag: "Online Shopping", size: "text-2xl", weight: "font-black" },
-                  { tag: "Instagram Reels", size: "text-xl", weight: "font-bold" },
-                  { tag: "Cleaning Desktop", size: "text-xs", weight: "font-light" },
-                  { tag: "Arguing on Twitter", size: "text-lg", weight: "font-bold" },
-                ].map((tag, i) => (
+                {distractionTags.map((tag, i) => (
                   <span key={i} className={`${tag.size} ${tag.weight} text-white/40 hover:text-red-400 transition-colors cursor-default px-2 py-1`}>
                     {tag.tag}
                   </span>
@@ -148,13 +156,13 @@ export default function InsightsPage() {
 
            <div className="bg-linear-to-br from-blue-600 to-purple-700 rounded-3xl p-0.5 transition-transform hover:scale-[1.01]">
               <div className="bg-black w-full h-full rounded-3xl p-8 flex flex-col justify-center items-center text-center space-y-6">
-                 <h2 className="text-3xl font-black tracking-tighter">Are you delaying right now?</h2>
-                 <p className="text-gray-400 text-sm italic">"The analysis shows that 42% of our readers are actually procrastinating while reading these insights."</p>
+                 <h2 className="text-3xl font-black tracking-tighter">{t("insightsPage.delayingQuest")}</h2>
+                 <p className="text-gray-400 text-sm italic">"{t("insightsPage.delayingDesc")}"</p>
                  <Link 
                     href="/"
                     className="px-8 py-3 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-all uppercase tracking-widest text-xs"
                   >
-                    Go Log a Focus Session
+                    {t("insightsPage.goLog")}
                  </Link>
               </div>
            </div>

@@ -1,7 +1,12 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 const Footer = () => {
+  const { t } = useLanguage();
+
   return (
     <footer className="w-full bg-zinc-950 border-t border-white/10 pt-16 pb-8 px-8 relative z-20">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12">
@@ -17,7 +22,7 @@ const Footer = () => {
             </span>
           </div>
           <p className="text-gray-500 text-sm leading-relaxed italic">
-            "A global mirror reflecting the collective heartbeat of human productivity. Making the invisible struggle with procrastination visible."
+            "{t("footer.tagline")}"
           </p>
           <div className="flex gap-4">
             {['Twitter', 'Github', 'Instagram'].map((social) => (
@@ -35,26 +40,26 @@ const Footer = () => {
         {/* Links Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Navigation</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{t("footer.navTitle")}</h4>
             <ul className="space-y-2">
-              <li><Link href="/" className="text-sm text-gray-500 hover:text-white transition-colors">Global Map</Link></li>
-              <li><Link href="/insights" className="text-sm text-gray-500 hover:text-white transition-colors">Detailed Insights</Link></li>
-              <li><Link href="/about" className="text-sm text-gray-500 hover:text-white transition-colors">About Project</Link></li>
+              <li><Link href="/" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.globalMap")}</Link></li>
+              <li><Link href="/insights" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.detailedInsights")}</Link></li>
+              <li><Link href="/about" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.aboutProject")}</Link></li>
             </ul>
           </div>
           <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Resources</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{t("footer.resourcesTitle")}</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">API Access</a></li>
-              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Open Data</a></li>
+              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.privacyPolicy")}</a></li>
+              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.apiAccess")}</a></li>
+              <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">{t("footer.openData")}</a></li>
             </ul>
           </div>
           <div className="space-y-4 col-span-2 md:col-span-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{t("footer.statusTitle")}</h4>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-               <span className="text-[10px] font-mono text-gray-300">All Systems Operational</span>
+               <span className="text-[10px] font-mono text-gray-300">{t("footer.allSystems")}</span>
             </div>
           </div>
         </div>
@@ -65,7 +70,7 @@ const Footer = () => {
           &copy; 2026 DELAYSCOPE LABS. COORDINATES: 21.0285° N, 105.8542° E
         </p>
         <div className="flex items-center gap-6">
-           <span className="text-[10px] text-gray-600 uppercase tracking-widest">Built for the Distracted</span>
+           <span className="text-[10px] text-gray-600 uppercase tracking-widest">{t("footer.builtFor")}</span>
            <div className="h-4 w-px bg-white/10 hidden md:block"></div>
            <span className="text-[10px] text-gray-600 font-mono uppercase">Ver: 1.0.4-B</span>
         </div>
