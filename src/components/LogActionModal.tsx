@@ -7,8 +7,49 @@ interface LogActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   userLocation: { lat: number; lng: number; country: string } | null;
-  onSeePin: (type: string, score: number) => void;
+  onSeePin: (type: string, score: number, description: string) => void;
 }
+
+const PRO_TAGS = [
+  // Level 1: Light
+  { level: 1, label: "Drinking Coffee/Tea", emoji: "☕" },
+  { level: 1, label: "Iced Tea Chatting", emoji: "🍹" },
+  { level: 1, label: "Cleaning Desk", emoji: "🧼" },
+  { level: 1, label: "Quick Nap", emoji: "😴" },
+  { level: 1, label: "Daydreaming", emoji: "💭" },
+  { level: 1, label: "Strolling Around", emoji: "🚶" },
+  
+  // Level 2: Medium
+  { level: 2, label: "Eating a Snack", emoji: "🍪" },
+  { level: 2, label: "Online Shopping", emoji: "🛍️" },
+  { level: 2, label: "Eating Fast Food", emoji: "🍔" },
+  { level: 2, label: "Window Shopping", emoji: "🛒" },
+  { level: 2, label: "Checking Social Feed", emoji: "📸" },
+  { level: 2, label: "Reading Random News", emoji: "📰" },
+  
+  // Level 3: Heavy
+  { level: 3, label: "Scrolling TikTok/Reels", emoji: "📱" },
+  { level: 3, label: "Watching Anime/Netflix", emoji: "🎬" },
+  { level: 3, label: "Playing Games", emoji: "🎮" },
+  { level: 3, label: "Binge Watching", emoji: "🎭" },
+  { level: 3, label: "Couch Potatoing", emoji: "🛋️" },
+  { level: 3, label: "Mobile Gambling/Gacha", emoji: "🎰" },
+];
+
+const FOCUS_TAGS = [
+  { level: 1, label: "Coding Session", emoji: "💻" },
+  { level: 1, label: "Studying", emoji: "📚" },
+  { level: 1, label: "Designing UI/UX", emoji: "🎨" },
+  { level: 1, label: "Deep Work", emoji: "🧘" },
+  { level: 1, label: "Reading Books", emoji: "📖" },
+  { level: 1, label: "Writing", emoji: "✍️" },
+  { level: 1, label: "Workout Session", emoji: "🏋️" },
+  { level: 1, label: "Conducting Research", emoji: "🧪" },
+  { level: 1, label: "Building Project", emoji: "🏗️" },
+  { level: 1, label: "Learning Language", emoji: "🗣️" },
+  { level: 1, label: "Data Analysis", emoji: "📊" },
+  { level: 1, label: "Solving Puzzles", emoji: "🧩" },
+];
 
 export default function LogActionModal({
   isOpen,
@@ -22,7 +63,7 @@ export default function LogActionModal({
   const [actionType, setActionType] = useState<
     "focus" | "procrastinate" | null
   >(null);
-  const [activityInput, setActivityInput] = useState("");
+  const [selectedTag, setSelectedTag] = useState<{label: string, emoji: string, level: number} | null>(null);
 
   if (!isOpen) return null;
 
@@ -31,19 +72,34 @@ export default function LogActionModal({
   const handleClose = () => {
     setStep(1);
     setActionType(null);
-    setActivityInput("");
+    setSelectedTag(null);
     onClose();
   };
 
+  const handleTagSelect = (tag: {label: string, emoji: string, level: number}) => {
+    setSelectedTag(tag);
+  };
+
   const handleSubmit = () => {
-    // Random score
-    const randomScore = Math.floor(Math.random() * 40) + 60; // 60-99
-    setScore(randomScore);
+    if (!selectedTag) return;
+
+    let calculatedScore = 0;
+    if (actionType === "procrastinate") { // Guilt Index
+      if (selectedTag.level === 1) calculatedScore = Math.floor(Math.random() * 11) + 60; // 60-70
+      else if (selectedTag.level === 2) calculatedScore = Math.floor(Math.random() * 15) + 71; // 71-85
+      else calculatedScore = Math.floor(Math.random() * 15) + 85; // 85-99
+    } else { // Focus Score
+      calculatedScore = Math.floor(Math.random() * 20) + 80; // 80-99
+    }
+
+    setScore(calculatedScore);
     setStep(3); // Loading Sync
     setTimeout(() => {
       setStep(4); // Component Card
     }, 1500);
   };
+
+  const currentTags = actionType === "focus" ? FOCUS_TAGS : PRO_TAGS;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -84,7 +140,7 @@ export default function LogActionModal({
         </div>
 
         {/* Content */}
-        <div className="p-4 md:p-8 min-h-[300px] flex flex-col justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]">
+        <div className="p-4 md:p-8 min-h-[400px] flex flex-col justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]">
           {/* STEP 1 */}
           {step === 1 && (
             <div className="animate-modal-up">
@@ -163,44 +219,70 @@ export default function LogActionModal({
             </div>
           )}
 
-          {/* STEP 2 */}
+          {/* STEP 2: Tag Selection */}
           {step === 2 && (
-            <div className="animate-modal-left">
-              <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2">
-                {actionType === "procrastinate"
-                  ? t("modal.insteadQuestion")
-                  : t("modal.workingQuestion")}
-              </h3>
-              <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm">
-                {actionType === "procrastinate"
-                  ? t("modal.confessSins")
-                  : t("modal.impressUs")}
-              </p>
+            <div className="animate-modal-left flex flex-col h-full overflow-hidden">
+              <div className="shrink-0">
+                <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2 text-white">
+                  {actionType === "procrastinate"
+                    ? t("modal.insteadQuestion")
+                    : t("modal.workingQuestion")}
+                </h3>
+                <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest font-bold">
+                  {actionType === "procrastinate"
+                    ? "Confess your current level of delay"
+                    : "Embrace your flow state activity"}
+                </p>
+              </div>
 
-              <input
-                type="text"
-                autoFocus
-                placeholder={
-                  actionType === "procrastinate"
-                    ? t("modal.placeholderPro")
-                    : t("modal.placeholderFocus")
-                }
-                value={activityInput}
-                onChange={(e) => setActivityInput(e.target.value)}
-                className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-center text-lg"
-              />
+              <div className="grid grid-cols-2 gap-2.5 overflow-y-auto pr-2 custom-scrollbar min-h-0 flex-1">
+                {currentTags.map((tag) => (
+                  <button
+                    key={tag.label}
+                    onClick={() => handleTagSelect(tag)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group/tag ${
+                      selectedTag?.label === tag.label
+                        ? actionType === "procrastinate"
+                          ? "bg-red-500/20 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+                          : "bg-green-500/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                    }`}
+                  >
+                    <span className="text-2xl group-hover/tag:scale-110 transition-transform drop-shadow-md">{tag.emoji}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className={`text-[11px] md:text-xs font-bold truncate ${selectedTag?.label === tag.label ? "text-white" : "text-gray-300"}`}>
+                        {tag.label}
+                      </span>
+                      {actionType === "procrastinate" && (
+                        <span className={`text-[8px] uppercase tracking-widest font-black ${
+                          tag.level === 1 ? "text-blue-400" : tag.level === 2 ? "text-amber-400" : "text-red-500 opacity-80"
+                        }`}>
+                          {tag.level === 1 ? "Light" : tag.level === 2 ? "Medium" : "Heavy"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
 
-              <div className="mt-8 flex justify-between">
+              <div className="mt-6 pt-4 flex justify-between shrink-0 border-t border-white/10">
                 <button
-                  onClick={() => setStep(1)}
-                  className="px-5 py-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+                  onClick={() => {
+                    setStep(1);
+                    setSelectedTag(null);
+                  }}
+                  className="px-5 py-2 rounded-lg text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
                 >
                   {t("modal.back")}
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={activityInput.trim().length === 0}
-                  className="px-6 py-2 rounded-lg bg-white text-black font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                  disabled={!selectedTag}
+                  className={`px-8 py-2 rounded-lg font-black uppercase tracking-widest transition-all ${
+                    selectedTag 
+                      ? "bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
+                      : "bg-white/10 text-white/20 cursor-not-allowed"
+                  }`}
                 >
                   {t("modal.submit")}
                 </button>
@@ -215,10 +297,10 @@ export default function LogActionModal({
                 <div className="absolute inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-20" />
                 <div className="w-8 h-8 rounded-full bg-blue-400 animate-pulse relative z-10" />
               </div>
-              <h3 className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-purple-500 mb-4">
+              <h3 className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-purple-500 mb-4 uppercase tracking-tighter">
                 {t("modal.syncing")}
               </h3>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm font-medium">
                 {t("modal.syncingSub")}
               </p>
             </div>
@@ -228,7 +310,7 @@ export default function LogActionModal({
           {step === 4 && (
             <div className="animate-modal-up w-full max-w-sm mx-auto">
               <div
-                className={`p-6 rounded-2xl border ${actionType === "procrastinate" ? "bg-red-950/20 border-red-500/30" : "bg-green-950/20 border-green-500/30"} flex flex-col relative overflow-hidden backdrop-blur-xl`}
+                className={`p-6 rounded-2xl border ${actionType === "procrastinate" ? "bg-red-950/20 border-red-500/30" : "bg-green-950/20 border-green-500/30"} flex flex-col relative overflow-hidden backdrop-blur-xl shadow-2xl`}
               >
                 {/* Glow behind */}
                 <div
@@ -239,7 +321,7 @@ export default function LogActionModal({
                 <div className="flex justify-between items-start mb-6 relative z-10">
                   <div>
                     <p
-                      className={`text-[9px] md:text-[10px] uppercase tracking-widest font-bold mb-1 ${actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                      className={`text-[9px] md:text-[10px] uppercase tracking-widest font-black mb-1 ${actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
                     >
                       {actionType === "procrastinate"
                         ? t("modal.guiltIndex")
@@ -253,48 +335,18 @@ export default function LogActionModal({
                     </h4>
                   </div>
                   <div
-                    className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg ${actionType === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg bg-black/40 ${actionType === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
                   >
-                    {actionType === "procrastinate" ? (
-                      <svg
-                        className="w-7 h-7"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-7 h-7"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
+                    <span className="text-3xl drop-shadow-md">{selectedTag?.emoji}</span>
                   </div>
                 </div>
 
                 {/* Quotes */}
                 <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
-                  <h5 className="text-xl font-bold text-white mb-1.5">
-                    {actionType === "procrastinate"
-                      ? t("modal.masterDelay")
-                      : t("modal.unstoppableForce")}
+                  <h5 className="text-xl font-bold text-white mb-1.5 uppercase tracking-wide">
+                    {selectedTag?.label}
                   </h5>
-                  <p className="text-sm text-gray-400 italic font-medium">
+                  <p className="text-sm text-gray-400 italic font-medium leading-relaxed">
                     "
                     {actionType === "procrastinate"
                       ? t("modal.proQuote")
@@ -306,15 +358,15 @@ export default function LogActionModal({
                 {/* Compare Stats */}
                 <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
                   <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold opacity-70">
                       {t("modal.globalAvg")}
                     </p>
                     <div>
-                      <p className="text-xl font-bold text-gray-200">
+                      <p className="text-xl font-black text-gray-200">
                         {actionType === "procrastinate" ? "72/100" : "65/100"}
                       </p>
                       <p
-                        className={`text-[11px] font-semibold mt-1 ${score > 72 && actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                        className={`text-[11px] font-bold mt-1 ${score > 72 && actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
                       >
                         {score > 72 ? `▲ ${t("modal.aboveAvg")}` : `▼ ${t("modal.belowAvg")}`}
                       </p>
@@ -322,17 +374,17 @@ export default function LogActionModal({
                   </div>
                   <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
                     <p
-                      className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate"
+                      className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 truncate font-bold opacity-70"
                       title={userLocation?.country}
                     >
                       {userLocation?.country || "Local"} {t("modal.localAvg")}
                     </p>
                     <div>
-                      <p className="text-xl font-bold text-gray-200">
+                      <p className="text-xl font-black text-gray-200">
                         {actionType === "procrastinate" ? "85/100" : "60/100"}
                       </p>
                       <p
-                        className={`text-[11px] font-semibold mt-1 ${(score > 85 && actionType === "procrastinate") || (score < 60 && actionType === "focus") ? "text-red-400" : "text-green-400"}`}
+                        className={`text-[11px] font-bold mt-1 ${(score > 85 && actionType === "procrastinate") || (score < 60 && actionType === "focus") ? "text-red-400" : "text-green-400"}`}
                       >
                         {score > 85 ? `▲ ${t("modal.settingRecords")}` : `▼ ${t("modal.playingSafe")}`}
                       </p>
@@ -342,15 +394,15 @@ export default function LogActionModal({
 
                 {/* Action button */}
                 <button
-                  onClick={() => onSeePin(actionType || "procrastinate", score)}
-                  className={`relative z-10 w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer hover:-translate-y-1 ${
+                  onClick={() => onSeePin(actionType || "procrastinate", score, `${selectedTag?.emoji} ${selectedTag?.label}`)}
+                  className={`relative z-10 w-full py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer hover:-translate-y-1 ${
                     actionType === "procrastinate"
                       ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]"
                       : "bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)]"
                   }`}
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-5 h-5 shadow-sm"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -358,7 +410,7 @@ export default function LogActionModal({
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2.5}
+                      strokeWidth={3}
                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                     />
                     <circle cx="12" cy="11" r="3" fill="currentColor" />

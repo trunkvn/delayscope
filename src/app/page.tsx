@@ -28,6 +28,7 @@ export default function Home() {
     type: string;
     score: number;
     country: string;
+    desc: string;
   } | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
@@ -90,7 +91,7 @@ export default function Home() {
         isOpen={isLogModalOpen}
         onClose={() => setIsLogModalOpen(false)}
         userLocation={userLocation}
-        onSeePin={(type, score) => {
+        onSeePin={(type, score, desc) => {
           if (userLocation) {
             setUserPin({
               lat: userLocation.lat,
@@ -98,6 +99,7 @@ export default function Home() {
               type,
               score,
               country: userLocation.country,
+              desc: desc
             });
           }
           setIsLogModalOpen(false);

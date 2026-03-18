@@ -7,7 +7,6 @@ import { countryDetails } from "@/mocks/countryDetailData";
 import { mockGlobalPins } from "@/utils/mockGlobalPins";
 import { calculateDynamicCountryColors } from "@/utils/calculateDynamicCountryColors";
 
-
 const countryColors = calculateDynamicCountryColors();
 
 interface MapProps {
@@ -17,6 +16,7 @@ interface MapProps {
     type: string;
     score: number;
     country: string;
+    desc: string;
   } | null;
   onLoad?: () => void;
 }
@@ -311,7 +311,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
     setActiveSidebarPin({
       ...userPin,
       isSelf: true,
-      desc: "You just logged this.",
+      desc: userPin.desc || "You just logged this.",
     });
     setSelectedCountry(null);
 
