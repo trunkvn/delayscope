@@ -3,14 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { countryDetails } from "@/mocks/countryDetailData";
-import { mockGlobalPins } from "@/utils/mockGlobalPins";
-import { calculateDynamicCountryColors } from "@/utils/calculateDynamicCountryColors";
-
-const countryColors = calculateDynamicCountryColors();
+import Pusher from "pusher-js";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MapProps {
   userPin?: {
+    id?: string;
     lat: number;
     lng: number;
     type: string;
@@ -27,27 +25,70 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
   const [isLoading, setIsLoading] = useState(true);
   const userPinMarker = useRef<maplibregl.Marker | null>(null);
   const globalPinMarkers = useRef<maplibregl.Marker[]>([]);
+  
   const [showUserSidebar, setShowUserSidebar] = useState(false);
-  const [activeSidebarPin, setActiveSidebarPin] = useState<{
-    lat: number;
-    lng: number;
-    type: string;
-    score: number;
-    country: string;
-    isSelf?: boolean;
-    desc?: string;
-  } | null>(null);
-
+  const [activeSidebarPin, setActiveSidebarPin] = useState<any>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountryInfo, setSelectedCountryInfo] = useState<any>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [countryColorsMap, setCountryColorsMap] = useState<Record<string, string>>({});
 
-  // Loại bỏ hàm updateCountryColors bên ngoài để đưa trực tiếp vào event load của MapLibre
+  // Refs for real-time stability
+  const geoJsonFeatures = useRef<GeoJSON.Feature[]>([]);
+  const userPinRef = useRef(userPin);
+
+  // Keep ref in sync for the Pusher listener
+  useEffect(() => {
+    userPinRef.current = userPin;
+  }, [userPin]);
+
+  // Fetch dynamic country details
+  useEffect(() => {
+    if (!selectedCountry) {
+      setSelectedCountryInfo(null);
+      return;
+    }
+
+    const fetchCountryInfo = async () => {
+      setIsDetailLoading(true);
+      try {
+        const res = await fetch(`/api/country/${selectedCountry}`);
+        const data = await res.json();
+        setSelectedCountryInfo(data);
+      } catch (e) {
+        console.error("Failed to fetch country info:", e);
+      } finally {
+        setIsDetailLoading(false);
+      }
+    };
+
+    fetchCountryInfo();
+  }, [selectedCountry]);
+
+  // Fetch dynamic pin details (if ID is present)
+  useEffect(() => {
+    if (!activeSidebarPin || activeSidebarPin.isSelf || !activeSidebarPin.id) return;
+
+    const fetchPinInfo = async () => {
+      try {
+        const res = await fetch(`/api/pin/${activeSidebarPin.id}`);
+        const data = await res.json();
+        setActiveSidebarPin((prev: any) => prev ? { ...prev, ...data } : null);
+      } catch (e) {
+        console.error("Failed to fetch pin info:", e);
+      }
+    };
+
+    fetchPinInfo();
+  }, [activeSidebarPin?.id]);
+
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
     const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
-      style:
-        "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
       center: [106.6833, 10.7769],
       zoom: 2.5,
       attributionControl: false,
@@ -55,25 +96,102 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
 
     map.current = mapInstance;
 
-    mapInstance.on("load", async () => {
-      // load geojson
-      const res = await fetch(
-        "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson",
-      );
+    // Setup Pusher Listener for real-time updates
+    const pusherKey = process.env.NEXT_PUBLIC_SOKETI_APP_KEY!;
+    const pusherHost = process.env.NEXT_PUBLIC_SOKETI_HOST || "127.0.0.1";
+    const pusherPort = Number(process.env.NEXT_PUBLIC_SOKETI_PORT) || 6001;
+    
+    const pusherClient = new Pusher(pusherKey, {
+      wsHost: pusherHost,
+      wsPort: pusherPort,
+      forceTLS: false,
+      disableStats: true,
+      enabledTransports: ["ws", "wss"],
+      cluster: "",
+    });
 
-      const geojson = await res.json();
+    const channel = pusherClient.subscribe("latermap-channel");
+
+    channel.bind("new-log", (data: any) => {
+      // 1. Add notification
+      const isSelf = userPinRef.current && userPinRef.current.id === data.id;
+      const newNotif = {
+        id: Date.now(),
+        country: data.country,
+        label: data.label,
+        emoji: data.emoji,
+        type: data.type,
+        score: data.score,
+        isSelf
+      };
+      
+      setNotifications(prev => [newNotif, ...prev].slice(0, 3));
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
+      }, 5000);
+
+      // 2. Add marker to map
+      if (!map.current) return;
+
+      const source = map.current.getSource("global-pins") as maplibregl.GeoJSONSource;
+      if (source) {
+        const newFeature: GeoJSON.Feature = {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [data.lng, data.lat],
+          },
+          properties: {
+            id: data.id,
+            type: data.type.toLowerCase(),
+            score: data.score,
+            country: data.country,
+          },
+        };
+        
+        geoJsonFeatures.current.unshift(newFeature);
+        if (geoJsonFeatures.current.length > 200) geoJsonFeatures.current.pop();
+        
+        source.setData({
+          type: "FeatureCollection",
+          features: geoJsonFeatures.current,
+        });
+      }
+    });
+
+    mapInstance.on("load", async () => {
+      // Parallel fetch for speed
+      const [geoRes, statsRes] = await Promise.all([
+        fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson"),
+        fetch("/api/map/colors")
+      ]);
+
+      const geojson = await geoRes.json();
+      const countryStats = await statsRes.json();
 
       mapInstance.addSource("countries", {
         type: "geojson",
         data: geojson,
       });
 
-      // Cấu hình màu cho Layer Quốc Gia qua Paint match theo GeoJSON Attribute
-      const matchExpression: any[] = ["match", ["get", "ISO_A2"]];
-      Object.entries(countryColors).forEach(([code, color]) => {
+      const matchExpression: any[] = ["match", ["coalesce", ["get", "ISO_A2_EH"], ["get", "ISO_A2"]]];
+      const newColorsMap: Record<string, string> = {};
+      
+      // Build dynamic coloring from REAL data
+      Object.entries(countryStats).forEach(([code, stats]: [string, any]) => {
+        const score = stats.averageGuilt;
+        let color = "rgba(0,0,0,0)";
+        if (score > 0) {
+          if (score >= 75) color = "rgba(239, 68, 68, 0.7)"; // Red (Level 3)
+          else if (score >= 36) color = "rgba(245, 158, 11, 0.7)"; // Amber (Level 2)
+          else color = "rgba(34, 197, 94, 0.7)"; // Green (Level 1)
+        }
         matchExpression.push(code, color);
+        newColorsMap[code] = color;
       });
-      matchExpression.push("rgba(0,0,0,0)"); // Mặc định trong suốt
+      
+      setCountryColorsMap(newColorsMap);
+      matchExpression.push("rgba(0,0,0,0)");
 
       mapInstance.addLayer({
         id: "countries-fill",
@@ -81,39 +199,26 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         source: "countries",
         paint: {
           "fill-color": matchExpression as any,
-          "fill-opacity": 0.5,
+          "fill-opacity": 0.55,
         },
       });
 
-      // Add click handler for side panel
       mapInstance.on("click", (e) => {
-        // Chỉ chạy khi các layer sẵn sàng
         if (!mapInstance.getLayer("countries-fill")) return;
 
-        // KIỂM TRA: Nếu click vào một global pin thì bỏ qua không load tooltip / sidebar quốc gia
         if (mapInstance.getLayer("global-pins-hitbox")) {
-          const pinFeatures = mapInstance.queryRenderedFeatures(e.point, {
-            layers: ["global-pins-hitbox"],
-          });
-          if (pinFeatures.length > 0) return; // Stop propagtion lên country layer
+          const pinFeatures = mapInstance.queryRenderedFeatures(e.point, { layers: ["global-pins-hitbox"] });
+          if (pinFeatures.length > 0) return;
         }
 
-        const features = mapInstance.queryRenderedFeatures(e.point, {
-          layers: ["countries-fill"],
-        });
-
+        const features = mapInstance.queryRenderedFeatures(e.point, { layers: ["countries-fill"] });
         if (features.length > 0) {
-          const isoCode = features[0].properties?.ISO_A2 as string;
-          if (isoCode && countryColors[isoCode]) {
+          const props = features[0].properties;
+          const isoCode = (props?.ISO_A2_EH || props?.ISO_A2 || props?.iso_a2_eh) as string;
+          if (isoCode && isoCode !== "-99") {
             setSelectedCountry(isoCode);
             setShowUserSidebar(false);
-            // Fly to country when clicked
-            mapInstance.flyTo({
-              center: e.lngLat,
-              zoom: 3.5,
-              essential: true,
-              duration: 1200,
-            });
+            mapInstance.flyTo({ center: e.lngLat, zoom: 3.5, essential: true, duration: 1200 });
             return;
           }
         }
@@ -122,603 +227,399 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
       });
 
       setIsLoading(false);
-      if (onLoad) {
-        // Đợi một chút khi overlay mờ đi thì mới kích hoạt animation trên UI
-        setTimeout(() => onLoad(), 200);
-      }
+      if (onLoad) setTimeout(() => onLoad(), 200);
 
-      // Bắt đầu hiệu ứng zoom sau khi map hiện lên
       setTimeout(() => {
-        mapInstance.flyTo({
-          zoom: 4,
-          duration: 2000,
-          essential: true,
-        });
+        mapInstance.flyTo({ zoom: 4, duration: 2000, essential: true });
       }, 100);
 
-      // Thêm Mock Pins thông qua GeoJSON Layer thay vì DOM Markers để tối ưu tỷ lệ Frame
-      setTimeout(() => {
-        if (!map.current) return;
+      // Fetch and display real-time pins
+      const fetchPins = async () => {
+        try {
+          const pinRes = await fetch("/api/logs/map");
+          const pinData = await pinRes.json();
+          if (!map.current) return;
 
-        // Thêm Source GeoJSON
-        map.current.addSource("global-pins", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: mockGlobalPins.map((pin) => ({
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [pin.lng, pin.lat],
-              },
-              properties: {
-                id: pin.id,
-                type: pin.type,
-                score: pin.score,
-                country: pin.country,
-                desc: pin.desc,
-              },
-            })),
-          },
-        });
+          geoJsonFeatures.current = pinData.map((pin: any) => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
+            properties: { id: pin.id, type: pin.type.toLowerCase(), score: pin.score, country: pin.countryCode },
+          }));
 
-        // Layer 1: Lớp phát ra ánh sáng nhạt (halo glow) để tạo cảm giác cyberpunk
-        map.current.addLayer({
-          id: "global-pins-halo",
-          type: "circle",
-          source: "global-pins",
-          paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              2,
-              4,
-              10,
-              16,
-            ],
-            "circle-color": [
-              "match",
-              ["get", "type"],
-              "procrastinate",
-              "rgba(239, 68, 68, 0.25)",
-              "focus",
-              "rgba(34, 197, 94, 0.25)",
-              "transparent",
-            ],
-            "circle-blur": 0.8,
-          },
-        });
+          map.current.addSource("global-pins", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: geoJsonFeatures.current,
+            },
+          });
 
-        // Layer 2: Lớp chấm đặc ở lõi (core)
-        map.current.addLayer({
-          id: "global-pins-layer",
-          type: "circle",
-          source: "global-pins",
-          paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              2,
-              2.5,
-              10,
-              5,
-            ],
-            "circle-color": [
-              "match",
-              ["get", "type"],
-              "procrastinate",
-              "#ef4444", // red-500
-              "focus",
-              "#22c55e", // green-500
-              "#ffffff",
-            ],
-            "circle-opacity": 0.9,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "rgba(255, 255, 255, 0.5)",
-          },
-        });
+          map.current.addLayer({
+            id: "global-pins-halo",
+            type: "circle",
+            source: "global-pins",
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 4, 10, 16],
+              "circle-color": ["match", ["get", "type"], "procrastinate", "rgba(239, 68, 68, 0.25)", "focus", "rgba(34, 197, 94, 0.25)", "transparent"],
+              "circle-blur": 0.8,
+            },
+          });
 
-        // Layer 3: Invisible Hitbox lớn hơn nhiều để dễ click!
-        map.current.addLayer({
-          id: "global-pins-hitbox",
-          type: "circle",
-          source: "global-pins",
-          paint: {
-            "circle-radius": [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              2,
-              12,
-              10,
-              24,
-            ],
-            "circle-color": "rgba(0,0,0,0)",
-            "circle-opacity": 0, // Vô hình hoàn toàn nhưng quét được sự kiện DOM
-          },
-        });
+          map.current.addLayer({
+            id: "global-pins-layer",
+            type: "circle",
+            source: "global-pins",
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 2.5, 10, 5],
+              "circle-color": ["match", ["get", "type"], "procrastinate", "#ef4444", "focus", "#22c55e", "#ffffff"],
+              "circle-opacity": 0.9,
+              "circle-stroke-width": 1,
+              "circle-stroke-color": "rgba(255, 255, 255, 0.5)",
+            },
+          });
 
-        // Handle Hover (Pointer Cursor) trên Hitbox
-        map.current.on("mouseenter", "global-pins-hitbox", () => {
-          if (map.current) map.current.getCanvas().style.cursor = "pointer";
-        });
-        map.current.on("mouseleave", "global-pins-hitbox", () => {
-          if (map.current) map.current.getCanvas().style.cursor = "";
-        });
+          map.current.addLayer({
+            id: "global-pins-hitbox",
+            type: "circle",
+            source: "global-pins",
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 12, 10, 24],
+              "circle-color": "rgba(0,0,0,0)",
+              "circle-opacity": 0,
+            },
+          });
 
-        // Handle Click (mở Sidebar bên trái cho pin) trên Hitbox
-        map.current.on("click", "global-pins-hitbox", (e) => {
-          if (e.features && e.features.length > 0) {
-            const props = e.features[0].properties;
-            const geo = e.features[0].geometry;
-            const lng = (geo as any).coordinates[0];
-            const lat = (geo as any).coordinates[1];
+          map.current.on("mouseenter", "global-pins-hitbox", () => {
+            if (map.current) map.current.getCanvas().style.cursor = "pointer";
+          });
+          map.current.on("mouseleave", "global-pins-hitbox", () => {
+            if (map.current) map.current.getCanvas().style.cursor = "";
+          });
 
-            setShowUserSidebar(true);
-            setActiveSidebarPin({
-              lat: lat,
-              lng: lng,
-              type: props?.type,
-              score: props?.score,
-              country: props?.country,
-              desc: props?.desc,
-              isSelf: false,
-            });
-            setSelectedCountry(null);
-
-            // Zoom bản đồ
-            if (map.current) {
-              map.current.flyTo({
-                center: [lng, lat],
-                zoom: 6,
-                duration: 2500,
-                essential: true,
+          map.current.on("click", "global-pins-hitbox", (e) => {
+            if (e.features && e.features.length > 0) {
+              const props = e.features[0].properties;
+              const geo = e.features[0].geometry;
+              const coords = (geo as any).coordinates;
+              
+              setShowUserSidebar(true);
+              setActiveSidebarPin({
+                id: props?.id,
+                lat: coords[1],
+                lng: coords[0],
+                type: props?.type,
+                score: props?.score,
+                country: props?.country,
+                isSelf: false,
               });
+              setSelectedCountry(null);
+
+              if (map.current) {
+                map.current.flyTo({ center: coords, zoom: 6, duration: 2500, essential: true });
+              }
             }
-          }
-        });
-      }, 1000);
+          });
+        } catch (e) {
+          console.error("Failed to fetch map pins:", e);
+        }
+      };
+
+      fetchPins();
     });
 
     return () => {
-      globalPinMarkers.current.forEach((m) => m.remove());
       mapInstance.remove();
       map.current = null;
+      pusherClient.disconnect();
     };
   }, []);
 
-  // Effect gắn marker cho User Pin
+  // Sync user pin
   useEffect(() => {
     if (!map.current || !userPin) return;
 
-    // Fly to user pin (Top-down view)
-    map.current.flyTo({
-      center: [userPin.lng, userPin.lat],
-      zoom: 6,
-      duration: 3500,
-      essential: true,
-    });
+    map.current.flyTo({ center: [userPin.lng, userPin.lat], zoom: 6, duration: 3500, essential: true });
 
-    // Remove old marker if exists
-    if (userPinMarker.current) {
-      userPinMarker.current.remove();
-    }
+    if (userPinMarker.current) userPinMarker.current.remove();
 
-    // Auto open sidebar when new pin is logged
     setShowUserSidebar(true);
-    setActiveSidebarPin({
-      ...userPin,
-      isSelf: true,
-      desc: userPin.desc || "You just logged this.",
-    });
+    setActiveSidebarPin({ ...userPin, isSelf: true });
     setSelectedCountry(null);
 
-    // Create a custom DOM element for the pin
     const el = document.createElement("div");
-    // Only use cursor-pointer, remove hover:scale to fix jumping issue
-    el.className =
-      "relative flex items-center justify-center w-8 h-8 cursor-pointer group";
-
-    const isProcrastinating = userPin.type === "procrastinate";
-    const colorClass = isProcrastinating ? "bg-blue-500" : "bg-cyan-400"; // Tự bản thân dùng màu chói và khác 1 chút (Vd: xanh dương neon)
-
-    // Create the HTML for the pin without the text and with beautiful pulsing circles
+    el.className = "relative flex items-center justify-center w-8 h-8 cursor-pointer group";
+    const colorClass = userPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500";
     el.innerHTML = `
-      <div class="absolute inset-[-14px] rounded-full ${colorClass} animate-ping opacity-40 pointer-events-none" style="animation-duration: 1.5s;"></div>
+      <div class="absolute inset-[-14px] rounded-full ${colorClass} animate-ping opacity-40 pointer-events-none"></div>
       <div class="absolute inset-[-6px] rounded-full ${colorClass} opacity-60 blur-[3px] pointer-events-none"></div>
-      <div class="relative w-4 h-4 rounded-full bg-white z-10 shadow-[0_0_20px_rgba(255,255,255,1)] border-2 border-blue-200"></div>
+      <div class="relative w-4 h-4 rounded-full bg-white z-10 shadow-[0_0_20px_rgba(255,255,255,1)] border-2 border-white/20"></div>
     `;
 
-    // Handle click on marker to show sidebar
     el.addEventListener("click", (e) => {
-      e.stopPropagation(); // prevent map click event
+      e.stopPropagation();
       setShowUserSidebar(true);
-      setActiveSidebarPin({
-        ...userPin,
-        isSelf: true,
-        desc: "You just logged this.",
-      });
+      setActiveSidebarPin({ ...userPin, isSelf: true });
       setSelectedCountry(null);
     });
 
-    userPinMarker.current = new maplibregl.Marker({
-      element: el,
-      anchor: "center",
-    })
-      .setLngLat([userPin.lng, userPin.lat])
-      .addTo(map.current);
+    userPinMarker.current = new maplibregl.Marker({ element: el }).setLngLat([userPin.lng, userPin.lat]).addTo(map.current);
   }, [userPin]);
 
   return (
     <div className="absolute inset-0 w-full h-full bg-black">
-      <div
-        ref={mapContainer}
-        className={`w-full h-full transition-opacity duration-1000 ${isLoading ? "opacity-0" : "opacity-100"}`}
-      />
+      <AnimatePresence mode="wait">
+        {isLoading && (
+          <motion.div
+            key="map-loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 z-100 flex flex-col items-center justify-center bg-black select-none pointer-events-none"
+          >
+            <div className="relative">
+              {/* Outer orbit glow */}
+              <div className="absolute -inset-15 bg-blue-600/10 rounded-full blur-[80px] animate-pulse" />
+              
+              {/* Radial scanning effect */}
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                className="absolute -inset-10 opacity-10"
+              >
+                <div className="w-full h-full border border-blue-400/30 rounded-full border-t-transparent border-r-transparent" />
+              </motion.div>
 
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-500">
-          <div className="relative">
-            {/* Outer Ring */}
-            <div className="w-16 h-16 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
-            {/* Inner Glow */}
-            <div
-              className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-purple-400 rounded-full animate-spin blur-[2px]"
-              style={{ animationDuration: "0.8s" }}
-            ></div>
-          </div>
-          <p className="mt-6 text-blue-100/80 font-medium tracking-widest text-xs uppercase animate-pulse">
-            Loading world map...
-          </p>
+              {/* The Globe Icon */}
+              <div className="relative z-10 p-8 border border-white/5 rounded-full bg-white/2 backdrop-blur-2xl">
+                <svg className="w-16 h-16 md:w-24 md:h-24 text-blue-500/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </div>
 
-          <style jsx global>{`
-            @keyframes spin {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-            .animate-spin {
-              animation: spin 1s linear infinite;
-            }
-            @keyframes pulse {
-              0%,
-              100% {
-                opacity: 1;
-              }
-              50% {
-                opacity: 0.5;
-              }
-            }
-            .animate-pulse {
-              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            }
-          `}</style>
-        </div>
-      )}
+              {/* Data streams */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 pointer-events-none opacity-20">
+                 {[...Array(6)].map((_, i) => (
+                    <motion.div
+                       key={i}
+                       initial={{ opacity: 0 }}
+                       animate={{ 
+                          opacity: [0, 1, 0],
+                          x: [0, (i % 2 === 0 ? 1 : -1) * 150],
+                          y: [0, (i < 3 ? 1 : -1) * 150]
+                       }}
+                       transition={{ 
+                          duration: 2 + Math.random() * 2, 
+                          repeat: Infinity, 
+                          delay: i * 0.4 
+                       }}
+                       className="absolute top-1/2 left-1/2 w-0.5 h-0.5 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(59,130,246,1)]"
+                    />
+                 ))}
+              </div>
+            </div>
 
-      <div
-        className={`absolute top-0 right-0 h-full w-full md:w-[440px] bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${
-          selectedCountry ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {selectedCountry && countryDetails[selectedCountry] && (
+            <div className="mt-16 text-center space-y-4">
+              <div className="flex flex-col items-center gap-1">
+                 <p className="text-[10px] md:text-xs font-black tracking-[0.5em] text-blue-400 uppercase drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
+                   Initializing World Map
+                 </p>
+                 <p className="text-gray-600 font-mono text-[9px] uppercase tracking-widest animate-pulse">
+                   Mapping Global Procrastination Vectors...
+                 </p>
+              </div>
+
+              <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden mx-auto relative group">
+                <motion.div 
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "100%" }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-blue-500 to-transparent w-1/2"
+                />
+              </div>
+            </div>
+
+            {/* Corner UI elements for tech feel */}
+            <div className="absolute top-12 left-12 opacity-20 hidden md:block">
+               <div className="w-12 h-12 border-t border-l border-white/40" />
+               <p className="font-mono text-[8px] mt-2">SYS_VERSION: 2.1.0-ALPHA</p>
+            </div>
+            <div className="absolute bottom-12 right-12 opacity-20 hidden md:block text-right">
+               <div className="w-12 h-12 border-b border-r border-white/40 ml-auto" />
+               <p className="font-mono text-[8px] mt-2 tracking-widest uppercase">Location: {userPin?.country || "SCANNING"}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div ref={mapContainer} className={`w-full h-full transition-all duration-2000 ease-out ${isLoading ? "opacity-0 scale-95 blur-xl" : "opacity-100 scale-100 blur-0"}`} />
+
+      {/* Country Sidebar */}
+      <div className={`absolute top-0 right-0 h-full w-full md:w-110 bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${selectedCountry ? "translate-x-0" : "translate-x-full"}`}>
+        {selectedCountry && (
           <div className="flex flex-col h-full p-6 text-white overflow-y-auto">
-            {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-4 h-4 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                  style={{ backgroundColor: countryColors[selectedCountry] }}
-                />
-                <h3 className="text-2xl font-black tracking-wider uppercase">
-                  {countryDetails[selectedCountry].name}
-                </h3>
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: countryColorsMap[selectedCountry] || "#fff" }} />
+                <h3 className="text-2xl font-black tracking-wider uppercase">{selectedCountry}</h3>
               </div>
-              <button
-                onClick={() => setSelectedCountry(null)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+              <button onClick={() => setSelectedCountry(null)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            {/* Content */}
-            <div className="space-y-6">
-              {/* Delay Index */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">
-                  Delay Index / 100
-                </p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-red-400 to-orange-500 drop-shadow-sm">
-                    {countryDetails[selectedCountry].delayIndex}
-                  </span>
+            {isDetailLoading ? (
+              <div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
+            ) : selectedCountryInfo && (
+              <div className="space-y-6">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Avg Guilt Index</p>
+                  <span className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-red-400 to-orange-500">{selectedCountryInfo.averageGuilt}</span>
+                  <div className="w-full h-2 bg-gray-800 rounded-full mt-4 overflow-hidden"><div className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000" style={{ width: `${selectedCountryInfo.averageGuilt}%` }} /></div>
                 </div>
-                {/* Progress bar */}
-                <div className="w-full h-2 bg-gray-800 rounded-full mt-4 overflow-hidden shadow-inner">
-                  <div
-                    className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000 w-[0%]"
-                    style={{
-                      width: `${countryDetails[selectedCountry].delayIndex}%`,
-                      boxShadow: "0 0 10px rgba(255, 100, 50, 0.5)",
-                    }}
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Total Logs</p>
+                    <p className="text-xl font-bold">{selectedCountryInfo.count}</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Top Tag</p>
+                    <p className="text-sm font-semibold truncate">{selectedCountryInfo.topTags?.[0]?.emoji} {selectedCountryInfo.topTags?.[0]?.label || "None"}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center relative overflow-hidden">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Deadlines Missed Today</p>
+                  <p className="text-4xl font-black tracking-widest">{selectedCountryInfo.missedDeadlines?.toLocaleString()}</p>
+                </div>
+                
+                {selectedCountryInfo.topTags?.length > 1 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">Trending Tags</p>
+                    {selectedCountryInfo.topTags.map((tag: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
+                        <span className="text-sm capitalize">{tag.emoji} {tag.label}</span>
+                        <span className="text-xs text-gray-500">{tag.count} logs</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pin Sidebar */}
+      <div className={`absolute top-0 right-0 h-full w-full md:w-112.5 bg-zinc-950/90 backdrop-blur-xl border-l border-white/10 z-60 transform transition-transform duration-500 ease-in-out ${showUserSidebar && activeSidebarPin ? "translate-x-0" : "translate-x-full"}`}>
+        {activeSidebarPin && (
+          <div className="flex flex-col h-full text-white overflow-y-auto w-full relative">
+            <div className={`p-8 min-h-full flex flex-col relative overflow-hidden ${activeSidebarPin.type === "procrastinate" ? "bg-red-950/20" : "bg-green-950/20"}`}>
+              <div className="flex justify-between items-center mb-8 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"} animate-pulse`} />
+                  <h3 className="text-sm font-bold tracking-[0.2em] uppercase text-white/50">{activeSidebarPin.isSelf ? "Personal Pulse" : "Global Heartbeat"}</h3>
+                </div>
+                <button onClick={() => setShowUserSidebar(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <div className="mb-10 relative z-10">
+                <p className={`text-[10px] uppercase tracking-[0.3em] font-black mb-3 ${activeSidebarPin.type === "procrastinate" ? "text-red-500" : "text-green-500"}`}>
+                  {activeSidebarPin.type === "procrastinate" ? "Guilt Index" : "Focus Score"}
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-8xl font-black italic tracking-tighter">{activeSidebarPin.score}</span>
+                  <span className="text-2xl font-bold text-white/20 lowercase">/100</span>
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between">
-                  <div>
-                    <svg
-                      className="w-5 h-5 text-blue-400 mb-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">
-                      Top Reason
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-100">
-                    {countryDetails[selectedCountry].topReason}
-                  </p>
+              <div className="space-y-6 relative z-10 flex-1">
+                <div className="border-l-4 border-white/10 pl-6 py-2">
+                  <h4 className="text-2xl font-black mb-2">{activeSidebarPin.activity || (activeSidebarPin.type === "procrastinate" ? "Master of Delay" : "Focused Flow")}</h4>
+                  <p className="text-gray-400 italic text-lg leading-relaxed">"{activeSidebarPin.desc || activeSidebarPin.label || "No confession provided."}"</p>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col justify-between">
-                  <div>
-                    <svg
-                      className="w-5 h-5 text-purple-400 mb-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1.5 line-clamp-1">
-                      Active Avoidance
-                    </p>
+                
+                <div className="grid grid-cols-2 gap-4 mt-12">
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Location</p>
+                    <p className="font-bold">{activeSidebarPin.country || "Unknown"}</p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-100">
-                    {countryDetails[selectedCountry].activeAvoidance}
-                  </p>
+                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Time</p>
+                    <p className="font-bold">{activeSidebarPin.timestamp ? new Date(activeSidebarPin.timestamp).toLocaleTimeString() : "Just now"}</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Big Number */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-linear-to-br from-blue-500/10 to-purple-500/10" />
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2 relative z-10">
-                  Deadlines Missed Today
-                </p>
-                <p className="text-4xl font-black tracking-widest text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] relative z-10">
-                  {countryDetails[
-                    selectedCountry
-                  ].deadlineMissed.toLocaleString()}
-                </p>
-                <p className="text-xs text-green-400 mt-2 font-medium bg-green-400/10 inline-block px-2 py-1 rounded-full relative z-10">
-                  +12% since yesterday
-                </p>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div
-        className={`absolute top-0 right-0 h-full w-full md:w-[450px] bg-zinc-950/90 backdrop-blur-xl border-r border-white/10 z-40 transform transition-transform duration-500 ease-in-out ${
-          showUserSidebar && activeSidebarPin
-            ? "translate-x-0"
-            : "translate-x-full"
-        }`}
-      >
-        {activeSidebarPin && (
-          <div className="flex flex-col h-full text-white overflow-y-auto w-full relative">
-            <div
-              className={`p-6 border-b flex flex-col relative overflow-hidden backdrop-blur-xl min-h-full ${activeSidebarPin.type === "procrastinate" ? "bg-red-950/20 border-red-500/30" : "bg-green-950/20 border-green-500/30"}`}
+      <style jsx>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
+      
+      {/* Real-time Notifications */}
+      <div className="absolute bottom-6 left-6 z-100 flex flex-col items-start gap-2 w-full max-w-sm pointer-events-none">
+        <AnimatePresence>
+          {notifications.map((n) => (
+            <motion.div
+              key={n.id}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative group pointer-events-auto"
             >
-              {/* Glow behind */}
-              <div
-                className={`absolute -top-20 -left-20 w-40 h-40 blur-[80px] rounded-full opacity-50 ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"}`}
-              ></div>
-
-              {/* Header with Close Button */}
-              <div className="flex justify-between items-center mb-8 relative z-10 w-full">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)] ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"}`}
-                  />
-                  <h3 className="text-xl font-black tracking-wider uppercase">
-                    {activeSidebarPin.isSelf ? "My Log" : "Global Log"}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowUserSidebar(false)}
-                  className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Score */}
-              <div className="flex justify-between items-start mb-6 relative z-10">
-                <div>
-                  <p
-                    className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${activeSidebarPin.type === "procrastinate" ? "text-red-400" : "text-green-400"}`}
-                  >
-                    {activeSidebarPin.type === "procrastinate"
-                      ? "Guilt Index"
-                      : "Focus Score"}
-                  </p>
-                  <h4 className="text-6xl font-black text-white">
-                    {activeSidebarPin.score}
-                    <span className="text-xl text-gray-500 font-medium tracking-normal">
-                      /100
-                    </span>
-                  </h4>
-                </div>
-                <div
-                  className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg ${activeSidebarPin.type === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
-                >
-                  {activeSidebarPin.type === "procrastinate" ? (
-                    <svg
-                      className="w-7 h-7"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="w-7 h-7"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </div>
-              </div>
-
-              {/* Quotes / Description */}
-              <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
-                <h5 className="text-xl font-bold text-white mb-1.5 flex flex-col gap-1">
-                  <span>
-                    {activeSidebarPin.type === "procrastinate"
-                      ? "Master of Delay 🏆"
-                      : "Unstoppable Force 🚀"}
-                  </span>
-                  {!activeSidebarPin.isSelf && (
-                    <span className="text-[12px] uppercase text-gray-400 font-medium tracking-widest flex items-center gap-1 opacity-70">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <circle cx="12" cy="11" r="3" fill="currentColor" />
-                      </svg>
-                      {activeSidebarPin.country}
-                    </span>
-                  )}
-                </h5>
-                <p className="text-sm text-gray-400 italic font-medium">
-                  "
-                  {activeSidebarPin.desc ||
-                    (activeSidebarPin.type === "procrastinate"
-                      ? "The deadline is a social construct. Who needs it anyway?"
-                      : "Look at you, actually doing what you said you would do.")}
-                  "
-                </p>
-              </div>
-
-              {/* Compare Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
-                <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                    Global Average
-                  </p>
-                  <div>
-                    <p className="text-xl font-bold text-gray-200">
-                      {activeSidebarPin.type === "procrastinate"
-                        ? "72/100"
-                        : "65/100"}
+                <div className="relative bg-[#0b0b0e]/95 backdrop-blur-xl border border-white/5 rounded-sm px-5 py-3 shadow-[0_15px_35px_rgba(0,0,0,0.6)] min-w-95 flex items-center gap-4 group overflow-hidden">
+                  {/* Status Indicator */}
+                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)] animate-pulse" />
+                  
+                  <div className="flex-1 flex items-center justify-between gap-4">
+                    <p className="text-[12px] font-medium text-gray-200 tracking-tight">
+                      {n.isSelf ? (
+                        <>
+                          <span className="text-gray-400">You just logged</span>
+                          <span className="mx-1 font-black text-white">{n.label}</span>
+                          <span className="mx-1">{n.emoji}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-gray-400">Someone in</span> 
+                          <span className="mx-1 font-bold text-white uppercase tracking-wider">{n.country}</span>
+                          <span className="text-gray-400">log</span>
+                          <span className="mx-1 font-black text-white">{n.label}</span>
+                          <span className="mx-1">{n.emoji}</span>
+                          <span className="text-gray-400">with score</span>
+                          <span className={`ml-1 font-black ${n.type === 'procrastinate' ? 'text-red-500' : 'text-green-500'}`}>
+                            {n.score}
+                          </span>
+                        </>
+                      )}
                     </p>
-                    <p
-                      className={`text-[11px] font-semibold mt-1 ${activeSidebarPin.score > 72 && activeSidebarPin.type === "procrastinate" ? "text-red-400" : "text-green-400"}`}
-                    >
-                      {activeSidebarPin.score > 72
-                        ? "▲ Above avg"
-                        : "▼ Below avg"}
-                    </p>
+
+                    <span className="text-[10px] font-mono font-bold text-gray-600 uppercase tracking-tighter whitespace-nowrap">
+                      Just now
+                    </span>
+                  </div>
+
+                  {/* Yellow Accent Progress Line */}
+                  <div className="absolute bottom-0 left-0 h-[1.5px] w-full bg-[#1a1a1f]">
+                     <motion.div 
+                        initial={{ width: "100%" }}
+                        animate={{ width: "0%" }}
+                        transition={{ duration: 6, ease: "linear" }}
+                        className="h-full bg-yellow-400/80 shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                     />
                   </div>
                 </div>
-                <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                  <p
-                    className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate"
-                    title={activeSidebarPin.country}
-                  >
-                    {activeSidebarPin.country || "Local"} Avg
-                  </p>
-                  <div>
-                    <p className="text-xl font-bold text-gray-200">
-                      {activeSidebarPin.type === "procrastinate"
-                        ? "85/100"
-                        : "60/100"}
-                    </p>
-                    <p
-                      className={`text-[11px] font-semibold mt-1 ${(activeSidebarPin.score > 85 && activeSidebarPin.type === "procrastinate") || (activeSidebarPin.score < 60 && activeSidebarPin.type === "focus") ? "text-red-400" : "text-green-400"}`}
-                    >
-                      {activeSidebarPin.score > 85
-                        ? "▲ Setting records"
-                        : "▼ Playing safe"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );

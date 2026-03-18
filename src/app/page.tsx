@@ -23,6 +23,7 @@ export default function Home() {
     country: string;
   } | null>(null);
   const [userPin, setUserPin] = useState<{
+    id?: string;
     lat: number;
     lng: number;
     type: string;
@@ -80,7 +81,11 @@ export default function Home() {
           setIsLogModalOpen={setIsLogModalOpen}
         />
 
-        <Insight isMapLoaded={isMapLoaded} />
+        <Insight 
+          isMapLoaded={isMapLoaded} 
+          countryCode={countryCode} 
+          userScore={userPin?.score} 
+        />
         <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} />
         <MarqueeLog isMapLoaded={isMapLoaded} />
       </div>
@@ -91,9 +96,11 @@ export default function Home() {
         isOpen={isLogModalOpen}
         onClose={() => setIsLogModalOpen(false)}
         userLocation={userLocation}
-        onSeePin={(type, score, desc) => {
+        countryCode={countryCode}
+        onSeePin={(type, score, desc, id) => {
           if (userLocation) {
             setUserPin({
+              id,
               lat: userLocation.lat,
               lng: userLocation.lng,
               type,

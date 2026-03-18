@@ -1,204 +1,291 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
-const Insight = ({ isMapLoaded }: { isMapLoaded: boolean }) => {
+interface Stats {
+  totalLogs: number;
+  proCount: number;
+  focusCount: number;
+  totalGuilt: number;
+  totalFocus: number;
+  activeDelayers: number;
+  dangerHour: string;
+  hourlySparkline: number[];
+}
+
+interface LocalStats {
+  proCount: number;
+  focusCount: number;
+  avgGuilt: number;
+}
+
+export default function Insight({ 
+  isMapLoaded, 
+  countryCode,
+  userScore
+}: { 
+  isMapLoaded: boolean;
+  countryCode?: string | null;
+  userScore?: number;
+}) {
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [local, setLocal] = useState<LocalStats | null>(null);
+  const [trending, setTrending] = useState<any[]>([]);
+  const [topCountries, setTopCountries] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isMapLoaded) return;
+
+    const fetchStats = async () => {
+      try {
+        const url = countryCode ? `/api/stats?country=${countryCode}` : "/api/stats";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.global) {
+          setStats(data.global);
+        }
+        if (data.local) {
+          setLocal(data.local);
+        }
+        if (data.trendingTags) {
+          setTrending(data.trendingTags.slice(0, 3));
+        }
+        if (data.topCountries) {
+          setTopCountries(data.topCountries);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
+  }, [isMapLoaded, countryCode]);
+
+  const avgGuilt = stats && stats.proCount > 0 
+    ? Math.round(stats.totalGuilt / stats.proCount) 
+    : 0;
+  
+  const getStatusLabel = (score: number) => {
+    if (score < 35) return { label: "Productive", color: "text-green-500" };
+    if (score < 70) return { label: "Distracted", color: "text-amber-500" };
+    return { label: "Chaos", color: "text-red-500" };
+  };
+
+  const status = getStatusLabel(avgGuilt);
+  const focusRatio = stats ? (stats.focusCount / (stats.proCount + stats.focusCount || 1)) * 100 : 50;
+
+  // Mini Chart Path calculation
+  const getChartPath = (data: number[]) => {
+    if (!data || data.length === 0) return "";
+    const max = Math.max(...data, 100);
+    const width = 300; // Updated to match layout padding
+    const height = 60;
+    const step = width / (data.length - 1);
+    
+    return data.map((val, i) => {
+      const x = i * step;
+      const y = height - (val / max) * height;
+      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(" ");
+  };
 
   return (
     <div
-      className={`absolute bottom-24 md:top-6 md:bottom-6 right-4 md:right-8 z-20 pointer-events-none flex flex-col items-end max-w-[calc(100%-2rem)] md:max-w-sm w-full transition-all duration-500 delay-500 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
+      className={`absolute bottom-6 right-6 z-10 transition-all duration-1000 transform w-96 max-h-[85vh] overflow-y-auto hud-scrollbar flex flex-col group ${
+        isMapLoaded ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
+      }`}
     >
-      {/* Mobile Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden pointer-events-auto flex items-center gap-2 bg-zinc-900/90 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-full mb-2 shadow-lg"
-      >
-        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-        <span className="text-[10px] font-black tracking-widest text-white uppercase">
-          {isOpen ? "Hide Insights" : t("insights.title")}
-        </span>
-        <svg
-          className={`w-3 h-3 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
-        </svg>
-      </button>
+      <style jsx global>{`
+        .hud-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .hud-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        .hud-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        .hud-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
+        .hud-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(59, 130, 246, 0.3) transparent; }
+      `}</style>
+      <div className="relative bg-zinc-950/80 backdrop-blur-3xl border border-white/5 rounded-4xl p-6 shadow-[0_25px_80px_rgba(0,0,0,0.9)] flex flex-col gap-6 overflow-hidden border-b-white/10 shrink-0">
+        {/* Corner Decorators */}
+        <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-white/10" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-white/10" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-white/10" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-white/10" />
 
-      <div className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 md:p-6 w-full shadow-[0_4px_30px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col h-full max-h-[400px] md:max-h-[800px] transition-all duration-500 ${isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none md:opacity-100 md:translate-y-0 md:pointer-events-auto"}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 md:mb-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-2 md:w-2.5 h-2 md:h-2.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
-            <h3 className="text-white font-bold text-xs tracking-widest uppercase">
-              {t("insights.title")}
-            </h3>
+        <div className="overflow-y-auto hud-scrollbar flex flex-col gap-6 pr-1">
+          {/* Header - Monitor Identity */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="relative w-2.5 h-2.5">
+                <div className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-30" />
+                <div className="absolute inset-0 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-[11px] font-black tracking-[0.4em] text-white uppercase leading-none">
+                  LATERSYNC // CORE
+                </h3>
+                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1.5">INTENTION MONITORING SYSTEM</p>
+              </div>
+            </div>
+            <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 ${status.color}`}>
+              {status.label}
+            </div>
           </div>
-          <span className="text-[8px] md:text-[9px] font-black tracking-widest bg-white/10 px-1.5 md:px-2 py-0.5 rounded text-gray-300">
-            {t("insights.live")}
-          </span>
+
+          {/* Global Statistics Grid */}
+          <div className="grid grid-cols-2 gap-8 shrink-0">
+            <div className="relative">
+              <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                 <span className="w-1 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" /> AVG. GUILT
+              </p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-white tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+                  {avgGuilt}
+                </span>
+                <span className="text-[10px] font-black text-gray-600">/ 100</span>
+              </div>
+            </div>
+
+            <div className="relative pl-6 border-l border-white/5">
+              <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" /> LIVE AGENTS
+              </p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-gray-100 tracking-tighter">
+                  {stats?.activeDelayers || 0}
+                </span>
+                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest leading-none ml-1">Live</span>
+              </div>
+              <p className="text-[8px] font-bold text-gray-600 mt-1">Logs: {stats?.totalLogs.toLocaleString()}</p>
+            </div>
+          </div>
+
+          {/* Global Leaders Section */}
+          <div className="space-y-3 shrink-0">
+             <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-4 h-px bg-white/5" /> GLOBAL DELAY LEADERS
+             </p>
+             <div className="grid grid-cols-3 gap-2">
+                {topCountries.length > 0 ? topCountries.map((c, i) => (
+                  <div key={c.code} className="bg-white/2 border border-white/5 rounded-xl p-2.5 flex flex-col items-center gap-1 group hover:border-white/20 transition-all">
+                     <span className="text-[9px] font-black text-gray-600 mb-0.5">#{i+1}</span>
+                     <span className="text-base font-black text-white tracking-tighter">{c.code}</span>
+                     <div className="w-full h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
+                        <div className="h-full bg-red-500/50" style={{ width: `${(c.count / (topCountries[0]?.count || 1)) * 100}%` }} />
+                     </div>
+                  </div>
+                )) : (
+                  <div className="col-span-3 text-center py-2 text-[10px] text-gray-600 font-black tracking-widest">AWAITING SIGNALS...</div>
+                )}
+             </div>
+          </div>
+
+          {/* Spectrum Analysis */}
+          <div className="space-y-3 shrink-0">
+            <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+              <span className="text-gray-600 font-bold">Spectrum</span>
+              <div className="flex gap-3">
+                <span className="text-green-500/70">FCS {Math.round(focusRatio)}%</span>
+                <span className="text-red-500/70">DLY {Math.round(100 - focusRatio)}%</span>
+              </div>
+            </div>
+            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden flex relative">
+              <div className="h-full bg-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all duration-1000" style={{ width: `${focusRatio}%` }} />
+              <div className="h-full bg-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all duration-1000" style={{ width: `${100 - focusRatio}%` }} />
+            </div>
+          </div>
+
+          {/* Wave Visualization */}
+          <div className="bg-white/2 border border-white/5 rounded-3xl p-5 space-y-4 shrink-0 mb-2">
+            <div className="flex items-center justify-between">
+               <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hourly Pulse</span>
+               <span className="text-[8px] font-black text-red-500/60 uppercase">Peak @ {stats?.dangerHour}</span>
+            </div>
+            
+            <div className="h-16 w-full relative">
+              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 300 60">
+                <defs>
+                  <linearGradient id="waveGradient3" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(239, 68, 68, 0.3)" />
+                    <stop offset="100%" stopColor="rgba(239, 68, 68, 0)" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d={`${getChartPath(stats?.hourlySparkline || [])} L 300 60 L 0 60 Z`}
+                  fill="url(#waveGradient3)"
+                />
+                <path
+                  d={getChartPath(stats?.hourlySparkline || [])}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="text-red-500/70 drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+                />
+              </svg>
+            </div>
+
+            {/* Distraction List */}
+            <div className="space-y-3 pt-3 border-t border-white/5">
+              {trending.map((tag, i) => (
+                <div key={tag.id} className="flex items-center gap-3.5 group">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-base shadow-inner group-hover:bg-white/10 transition-all">
+                    {tag.emoji}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
+                       <span className="text-gray-400">{tag.label}</span>
+                       <span className="text-gray-600 font-mono italic">{tag.count}</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                       <div 
+                         className="h-full bg-white/10 transition-all duration-1000" 
+                         style={{ width: `${(tag.count / (trending[0]?.count || 1)) * 100}%` }} 
+                       />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Local Pulse */}
+          {local && countryCode && (
+             <div className="bg-blue-600/5 border border-blue-500/10 rounded-2xl p-4 relative overflow-hidden shrink-0 group hover:bg-blue-600/10 transition-all border-b-blue-500/20">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-1000" />
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                   <span className="text-[10px] font-black text-blue-400/80 uppercase tracking-widest">{countryCode} NODE MONITOR</span>
+                   <span className="text-[8px] font-black text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-sm">LIVE</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 relative z-10 font-black">
+                   <div>
+                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">Avg Local</p>
+                      <p className="text-2xl text-white tracking-tighter">{local.avgGuilt}<span className="text-[10px] text-blue-400/30 ml-0.5">idx</span></p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">Signals</p>
+                      <p className="text-2xl text-white tracking-tighter">{local.proCount + local.focusCount}</p>
+                   </div>
+                </div>
+             </div>
+          )}
         </div>
-        <p className="text-gray-400 text-[10px] md:text-xs font-medium mb-4 md:mb-6 shrink-0 border-b border-white/5 pb-3 md:pb-4">
-          {t("insights.summary")}
-        </p>
-        
-        {/* Scrollable Content */}
-        <div className="space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar flex-1">
-          {/* Stat 1: Total & Trend */}
-          <div className="flex justify-between items-end bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
-            <div>
-              <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest mb-1 md:mb-1.5">
-                {t("insights.totalLogs")}
-              </p>
-              <p className="text-3xl md:text-4xl font-black text-white">124,592</p>
-            </div>
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1 text-green-400 bg-green-400/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded text-[10px] md:text-xs font-bold mb-1">
-                <svg
-                  className="w-2.5 md:w-3 h-2.5 md:h-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                  />
-                </svg>
-                12%
-              </div>
-              <p className="text-[8px] md:text-[9px] text-gray-600 uppercase">{t("insights.vsYesterday")}</p>
-            </div>
+
+        {/* System Footer */}
+        <div className="flex items-center justify-between border-t border-white/5 pt-4 opacity-30 grayscale group-hover:grayscale-0 transition-all shrink-0">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[7px] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">SYSTEM://LATERSYNC_CORE_V1</span>
+            <span className="text-[6px] font-bold text-gray-700 uppercase">Authenticated Access / 0x4F92</span>
           </div>
-
-          {/* Stat 2: Global Ratio Split */}
-          <div>
-            <div className="flex justify-between items-end mb-2">
-              <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest">
-                {t("insights.ratioTitle")}
-              </p>
-            </div>
-            <div className="flex gap-1.5 h-2.5 md:h-3 w-full rounded-full overflow-hidden mb-3 bg-white/5 p-0.5">
-              <div className="bg-linear-to-r from-red-600 to-red-500 h-full w-[68%] rounded-full relative shadow-[0_0_10px_rgba(220,38,38,0.5)]">
-                <div className="absolute inset-0 bg-white/20 w-1/2 rounded-full blur-[2px]"></div>
-              </div>
-              <div className="bg-linear-to-r from-green-500 to-green-400 h-full w-[32%] rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-            </div>
-            <div className="flex justify-between text-[10px] md:text-xs font-bold">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-red-500"></div>
-                <span className="text-red-400">{`68% ${t("insights.delaying")}`}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-green-500"></div>
-                <span className="text-green-400">{`32% ${t("insights.focused")}`}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Map Legend & Data Filter */}
-          <div className="bg-white/5 rounded-xl p-3 md:p-4 border border-white/5">
-            <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest mb-3">
-              {t("insights.legendTitle")}
-            </p>
-
-            {/* Legend */}
-            <div className="flex justify-between items-center mb-1 text-[10px] font-medium text-gray-300">
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full border border-red-500/50 bg-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-                <span className="text-[8px] md:text-[10px]">{`${t("insights.delaying")} > 60%`}</span>
-              </div>
-              <div className="w-3 md:w-4 h-px bg-white/10"></div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full border border-amber-500/50 bg-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-                <span className="text-[8px] md:text-[10px]">{t("insights.average")}</span>
-              </div>
-              <div className="w-3 md:w-4 h-px bg-white/10"></div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-2.5 md:w-3 h-2.5 md:h-3 rounded-full border border-green-500/50 bg-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-                <span className="text-[8px] md:text-[10px]">{`${t("insights.focused")} > 60%`}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full h-px bg-white/5"></div>
-
-          {/* Stat 3: Top Regions Compare */}
-          <div className="grid grid-cols-2 gap-2 md:gap-3">
-            <div className="bg-red-950/20 rounded-xl p-2.5 md:p-3 border border-red-500/20 relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-12 md:w-16 h-12 md:h-16 bg-red-500/10 rounded-full blur-xl"></div>
-              <p className="text-[8px] md:text-[9px] text-red-200/50 uppercase tracking-widest mb-1 md:mb-1.5">
-                {t("insights.mostDistracted")}
-              </p>
-              <p className="text-xs md:text-sm font-bold text-red-100 line-clamp-1 mb-1">
-                Tokyo, Japan
-              </p>
-              <p className="text-lg md:text-xl font-black text-red-400 mb-0.5 md:mb-1">88%</p>
-              <p className="text-[9px] md:text-[10px] text-red-300/70 line-clamp-1">
-                "{t("insights.anime")}"
-              </p>
-            </div>
-
-            <div className="bg-green-950/20 rounded-xl p-2.5 md:p-3 border border-green-500/20 relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-12 md:w-16 h-12 md:h-16 bg-green-500/10 rounded-full blur-xl"></div>
-              <p className="text-[8px] md:text-[9px] text-green-200/50 uppercase tracking-widest mb-1 md:mb-1.5">
-                {t("insights.mostFocused")}
-              </p>
-              <p className="text-xs md:text-sm font-bold text-green-100 line-clamp-1 mb-1">
-                Berlin, DE
-              </p>
-              <p className="text-lg md:text-xl font-black text-green-400 mb-0.5 md:mb-1">72%</p>
-              <p className="text-[9px] md:text-[10px] text-green-300/70 line-clamp-1">
-                "{t("insights.deepWork")}"
-              </p>
-            </div>
-          </div>
-
-          {/* Stat 5: Analytics Box */}
-          <div>
-            <p className="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest mb-2">
-              {t("insights.productivityLost")}
-            </p>
-            <div className="flex items-center gap-3 bg-red-500/10 p-3 md:p-4 rounded-xl border border-red-500/20">
-              <div className="w-8 md:w-10 h-8 md:h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
-                <svg
-                  className="w-4 md:w-5 h-4 md:h-5 text-red-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-black text-white">
-                  4.2M{" "}
-                  <span className="text-[10px] md:text-sm font-medium text-red-200/60 uppercase tracking-wider">
-                    {t("insights.hours")}
-                  </span>
-                </p>
-                <p className="text-[8px] md:text-[10px] text-gray-400 mt-1 border-t border-red-500/20 pt-1">
-                  {t("insights.globallyWasted")}
-                </p>
-              </div>
-            </div>
+          <div className="text-right flex flex-col gap-0.5 items-end">
+             <div className="flex items-center gap-1">
+                <div className="w-1 h-1 rounded-full bg-green-500" />
+                <span className="text-[7px] font-black text-green-500 uppercase tracking-widest">Sync</span>
+             </div>
+             <span className="text-[6px] font-mono text-gray-700 uppercase italic">MTU: 1500 / TTL: 64</span>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
-export default Insight;

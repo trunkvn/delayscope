@@ -2,59 +2,23 @@
 
 import React, { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { TAGS, Tag } from "@/constants/tags";
+import { logActivity } from "@/app/actions/logActions";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface LogActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   userLocation: { lat: number; lng: number; country: string } | null;
-  onSeePin: (type: string, score: number, description: string) => void;
+  countryCode: string | null;
+  onSeePin: (type: string, score: number, description: string, id?: string) => void;
 }
-
-const PRO_TAGS = [
-  // Level 1: Light
-  { level: 1, label: "Drinking Coffee/Tea", emoji: "☕" },
-  { level: 1, label: "Iced Tea Chatting", emoji: "🍹" },
-  { level: 1, label: "Cleaning Desk", emoji: "🧼" },
-  { level: 1, label: "Quick Nap", emoji: "😴" },
-  { level: 1, label: "Daydreaming", emoji: "💭" },
-  { level: 1, label: "Strolling Around", emoji: "🚶" },
-  
-  // Level 2: Medium
-  { level: 2, label: "Eating a Snack", emoji: "🍪" },
-  { level: 2, label: "Online Shopping", emoji: "🛍️" },
-  { level: 2, label: "Eating Fast Food", emoji: "🍔" },
-  { level: 2, label: "Window Shopping", emoji: "🛒" },
-  { level: 2, label: "Checking Social Feed", emoji: "📸" },
-  { level: 2, label: "Reading Random News", emoji: "📰" },
-  
-  // Level 3: Heavy
-  { level: 3, label: "Scrolling TikTok/Reels", emoji: "📱" },
-  { level: 3, label: "Watching Anime/Netflix", emoji: "🎬" },
-  { level: 3, label: "Playing Games", emoji: "🎮" },
-  { level: 3, label: "Binge Watching", emoji: "🎭" },
-  { level: 3, label: "Couch Potatoing", emoji: "🛋️" },
-  { level: 3, label: "Mobile Gambling/Gacha", emoji: "🎰" },
-];
-
-const FOCUS_TAGS = [
-  { level: 1, label: "Coding Session", emoji: "💻" },
-  { level: 1, label: "Studying", emoji: "📚" },
-  { level: 1, label: "Designing UI/UX", emoji: "🎨" },
-  { level: 1, label: "Deep Work", emoji: "🧘" },
-  { level: 1, label: "Reading Books", emoji: "📖" },
-  { level: 1, label: "Writing", emoji: "✍️" },
-  { level: 1, label: "Workout Session", emoji: "🏋️" },
-  { level: 1, label: "Conducting Research", emoji: "🧪" },
-  { level: 1, label: "Building Project", emoji: "🏗️" },
-  { level: 1, label: "Learning Language", emoji: "🗣️" },
-  { level: 1, label: "Data Analysis", emoji: "📊" },
-  { level: 1, label: "Solving Puzzles", emoji: "🧩" },
-];
 
 export default function LogActionModal({
   isOpen,
   onClose,
   userLocation,
+  countryCode,
   onSeePin,
 }: LogActionModalProps) {
   const { t } = useLanguage();
@@ -63,7 +27,28 @@ export default function LogActionModal({
   const [actionType, setActionType] = useState<
     "focus" | "procrastinate" | null
   >(null);
-  const [selectedTag, setSelectedTag] = useState<{label: string, emoji: string, level: number} | null>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastLogId, setLastLogId] = useState<string | undefined>(undefined);
+  const [errorHeader, setErrorHeader] = useState<string | null>(null);
+  const [syncMessageIndex, setSyncMessageIndex] = useState(0);
+
+  const syncMessages = [
+    "Encrypting neural signal...",
+    "Locating global vectors...",
+    "Synchronizing with DelayScope Core...",
+    "Calculating collective guilt...",
+    "Finalizing broadcast..."
+  ];
+
+  React.useEffect(() => {
+    if (step === 3) {
+      const interval = setInterval(() => {
+        setSyncMessageIndex((prev) => (prev + 1) % syncMessages.length);
+      }, 400); 
+      return () => clearInterval(interval);
+    }
+  }, [step]);
 
   if (!isOpen) return null;
 
@@ -73,33 +58,60 @@ export default function LogActionModal({
     setStep(1);
     setActionType(null);
     setSelectedTag(null);
+    setIsSubmitting(false);
+    setErrorHeader(null);
     onClose();
   };
 
-  const handleTagSelect = (tag: {label: string, emoji: string, level: number}) => {
+  const handleTagSelect = (tag: Tag) => {
     setSelectedTag(tag);
   };
 
-  const handleSubmit = () => {
-    if (!selectedTag) return;
+  const handleSubmit = async () => {
+    if (!selectedTag || !userLocation) return;
+    setIsSubmitting(true);
+    setErrorHeader(null);
 
     let calculatedScore = 0;
     if (actionType === "procrastinate") { // Guilt Index
-      if (selectedTag.level === 1) calculatedScore = Math.floor(Math.random() * 11) + 60; // 60-70
-      else if (selectedTag.level === 2) calculatedScore = Math.floor(Math.random() * 15) + 71; // 71-85
-      else calculatedScore = Math.floor(Math.random() * 15) + 85; // 85-99
+      if (selectedTag.level === 1) calculatedScore = Math.floor(Math.random() * 21) + 10; // 10-30
+      else if (selectedTag.level === 2) calculatedScore = Math.floor(Math.random() * 31) + 40; // 40-70
+      else calculatedScore = Math.floor(Math.random() * 26) + 75; // 75-100
     } else { // Focus Score
       calculatedScore = Math.floor(Math.random() * 20) + 80; // 80-99
     }
 
-    setScore(calculatedScore);
-    setStep(3); // Loading Sync
-    setTimeout(() => {
-      setStep(4); // Component Card
-    }, 1500);
+    try {
+      // Call Real Backend Server Action
+      const result = await logActivity({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        countryCode: countryCode || userLocation.country,
+        tagId: selectedTag.id,
+        score: calculatedScore
+      });
+
+      if (result.success && result.id) {
+        setScore(calculatedScore);
+        setLastLogId(result.id);
+        setStep(3); // Loading Sync
+        setTimeout(() => {
+          setStep(4); // Component Card
+        }, 1500);
+      } else {
+        setErrorHeader(result.error || "An unexpected error occurred.");
+      }
+    } catch (error) {
+      console.error("Failed to log activity:", error);
+      setErrorHeader("Failed to connect to server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const currentTags = actionType === "focus" ? FOCUS_TAGS : PRO_TAGS;
+  const currentTags = TAGS.filter(tag => 
+    actionType === "focus" ? tag.type === "FOCUS" : tag.type === "PROCRASTINATE"
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -140,7 +152,18 @@ export default function LogActionModal({
         </div>
 
         {/* Content */}
-        <div className="p-4 md:p-8 min-h-[400px] flex flex-col justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]">
+        <div className="p-4 md:p-8 min-h-100 flex flex-col justify-center overflow-y-auto custom-scrollbar max-h-[calc(100vh-120px)]">
+          {errorHeader && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl animate-shake">
+              <div className="flex items-center gap-3 text-red-400">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm font-bold leading-tight uppercase tracking-wide">{errorHeader}</p>
+              </div>
+            </div>
+          )}
+
           {/* STEP 1 */}
           {step === 1 && (
             <div className="animate-modal-up">
@@ -159,7 +182,7 @@ export default function LogActionModal({
                   }}
                   className="group relative px-4 md:px-6 py-3 md:py-4 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-all flex items-center gap-3 md:gap-4 overflow-hidden"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-linear-to-r from-red-500/0 via-red-500/5 to-red-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50 text-red-400 group-hover:scale-110 transition-transform shrink-0">
                     <svg
                       className="w-5 h-5 md:w-6 md:h-6"
@@ -192,7 +215,7 @@ export default function LogActionModal({
                   }}
                   className="group relative px-4 md:px-6 py-3 md:py-4 rounded-xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-all flex items-center gap-3 md:gap-4 overflow-hidden"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/5 to-green-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-linear-to-r from-green-500/0 via-green-500/5 to-green-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center border border-green-500/50 text-green-400 group-hover:scale-110 transition-transform shrink-0">
                     <svg
                       className="w-5 h-5 md:w-6 md:h-6"
@@ -238,10 +261,10 @@ export default function LogActionModal({
               <div className="grid grid-cols-2 gap-2.5 overflow-y-auto pr-2 custom-scrollbar min-h-0 flex-1">
                 {currentTags.map((tag) => (
                   <button
-                    key={tag.label}
+                    key={tag.id}
                     onClick={() => handleTagSelect(tag)}
                     className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group/tag ${
-                      selectedTag?.label === tag.label
+                      selectedTag?.id === tag.id
                         ? actionType === "procrastinate"
                           ? "bg-red-500/20 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
                           : "bg-green-500/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
@@ -250,7 +273,7 @@ export default function LogActionModal({
                   >
                     <span className="text-2xl group-hover/tag:scale-110 transition-transform drop-shadow-md">{tag.emoji}</span>
                     <div className="flex flex-col min-w-0">
-                      <span className={`text-[11px] md:text-xs font-bold truncate ${selectedTag?.label === tag.label ? "text-white" : "text-gray-300"}`}>
+                      <span className={`text-[11px] md:text-xs font-bold truncate ${selectedTag?.id === tag.id ? "text-white" : "text-gray-300"}`}>
                         {tag.label}
                       </span>
                       {actionType === "procrastinate" && (
@@ -277,14 +300,14 @@ export default function LogActionModal({
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={!selectedTag}
+                  disabled={!selectedTag || isSubmitting}
                   className={`px-8 py-2 rounded-lg font-black uppercase tracking-widest transition-all ${
-                    selectedTag 
+                    selectedTag && !isSubmitting
                       ? "bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
                       : "bg-white/10 text-white/20 cursor-not-allowed"
                   }`}
                 >
-                  {t("modal.submit")}
+                  {isSubmitting ? "Syncing..." : t("modal.submit")}
                 </button>
               </div>
             </div>
@@ -292,17 +315,79 @@ export default function LogActionModal({
 
           {/* STEP 3 (Syncing) */}
           {step === 3 && (
-            <div className="animate-modal-zoom flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-blue-500/20 border-2 border-blue-500 rounded-full flex items-center justify-center mb-6 relative">
-                <div className="absolute inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-20" />
-                <div className="w-8 h-8 rounded-full bg-blue-400 animate-pulse relative z-10" />
+            <div className="animate-modal-zoom flex flex-col items-center justify-center text-center py-10">
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                {/* Outer rotating ring */}
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 border-2 border-dashed border-blue-500/20 rounded-full"
+                />
+                
+                {/* Secondary scanning ring */}
+                <motion.div 
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-4 border border-blue-400/30 rounded-full border-t-transparent border-r-transparent"
+                />
+
+                {/* Core pulse */}
+                <div className="relative w-24 h-24 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center justify-center overflow-hidden">
+                  <motion.div 
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.3, 0.6, 0.3]
+                    }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                    className="absolute inset-4 bg-blue-500 rounded-full blur-xl"
+                  />
+                  <div className="relative z-10 w-4 h-4 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)]" />
+                </div>
+
+                {/* Orbiting data points */}
+                {[...Array(3)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5 + i, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 pointer-events-none"
+                  >
+                    <div 
+                      className="w-1.5 h-1.5 bg-blue-300 rounded-full absolute top-0 left-1/2 -translate-x-1/2 shadow-[0_0_8px_rgba(147,197,253,0.8)]"
+                    />
+                  </motion.div>
+                ))}
               </div>
-              <h3 className="text-3xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-purple-500 mb-4 uppercase tracking-tighter">
-                {t("modal.syncing")}
-              </h3>
-              <p className="text-gray-400 text-sm font-medium">
-                {t("modal.syncingSub")}
-              </p>
+
+              <div className="mt-12 space-y-3 min-h-16">
+                <h3 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 via-white to-purple-500 uppercase tracking-tighter">
+                  {t("modal.syncing")}
+                </h3>
+                <div className="h-4 flex items-center justify-center overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={syncMessageIndex}
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -10, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-gray-500 text-[10px] font-mono font-bold uppercase tracking-[0.2em]"
+                    >
+                      {syncMessages[syncMessageIndex]}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Loader Line */}
+              <div className="w-48 h-px bg-white/5 mt-8 relative overflow-hidden">
+                 <motion.div 
+                   initial={{ x: "-100%" }}
+                   animate={{ x: "100%" }}
+                   transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                   className="absolute inset-0 bg-linear-to-r from-transparent via-blue-500 to-transparent w-full"
+                 />
+              </div>
             </div>
           )}
 
@@ -394,7 +479,7 @@ export default function LogActionModal({
 
                 {/* Action button */}
                 <button
-                  onClick={() => onSeePin(actionType || "procrastinate", score, `${selectedTag?.emoji} ${selectedTag?.label}`)}
+                  onClick={() => onSeePin(actionType || "procrastinate", score, `${selectedTag?.emoji} ${selectedTag?.label}`, lastLogId)}
                   className={`relative z-10 w-full py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer hover:-translate-y-1 ${
                     actionType === "procrastinate"
                       ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]"

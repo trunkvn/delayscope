@@ -1,56 +1,106 @@
 "use client";
 
-import React from "react";
-import { useLanguage } from "@/context/LanguageContext";
+import React, { useEffect, useState } from "react";
 
-const MarqueeLog = ({ isMapLoaded }: { isMapLoaded: boolean }) => {
-  const { t } = useLanguage();
+interface MarqueeItem {
+  id: string;
+  type: string;
+  score: number;
+  label: string;
+  emoji: string;
+  country: string;
+  timestamp: string;
+}
 
-  const logs = [
-    { city: "🇯🇵 Tokyo", state: t("marquee.delaying"), action: t("marquee.anime"), color: "text-red-400" },
-    { city: "🇺🇸 New York", state: t("marquee.focused"), action: t("marquee.coding"), color: "text-green-400" },
-    { city: "🇻🇳 Hanoi", state: t("marquee.delaying"), action: t("marquee.coffee"), color: "text-red-400" },
-    { city: "🇩🇪 Berlin", state: t("marquee.focused"), action: t("marquee.deepWork"), color: "text-green-400" },
-    { city: "🇬🇧 London", state: t("marquee.delaying"), action: t("marquee.tea"), color: "text-red-400" },
-    { city: "🇦🇺 Sydney", state: t("marquee.focused"), action: t("marquee.data"), color: "text-green-400" },
-    { city: "🇫🇷 Paris", state: t("marquee.delaying"), action: t("marquee.croissant"), color: "text-red-400" },
-    { city: "🇧🇷 Sao Paulo", state: t("marquee.delaying"), action: t("marquee.dancing"), color: "text-red-400" },
-    { city: "🇨🇳 Beijing", state: t("marquee.focused"), action: t("marquee.studying"), color: "text-green-400" },
-    { city: "🇰🇷 Seoul", state: t("marquee.delaying"), action: t("marquee.kpop"), color: "text-red-400" },
-  ];
+export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
+  const [trending, setTrending] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isMapLoaded) return;
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        if (data.trendingTags) {
+          setTrending(data.trendingTags);
+        }
+      } catch (error) {
+        console.error("Failed to fetch trending tags:", error);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
+  }, [isMapLoaded]);
+
+  if (trending.length === 0) return null;
 
   return (
     <div
-      className={`absolute bottom-6 left-4 md:left-8 right-4 md:right-[430px] z-30 flex flex-col gap-2 pointer-events-none delay-300 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
+      className={`absolute bottom-6 left-6 right-110 z-10 transition-all duration-1000 transform ${
+        isMapLoaded ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
+      }`}
     >
-      {/* Static Title ABOVE the bar */}
-      <div className="flex items-center gap-2 pl-4">
-        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
-        <span className="text-[10px] text-gray-300 uppercase tracking-widest font-bold drop-shadow-md">
-          {t("marquee.title")}
-        </span>
-      </div>
+      <div className="bg-[#0f0f13]/90 backdrop-blur-xl border border-white/5 rounded-2xl px-6 py-2 shadow-2xl flex flex-col gap-1 overflow-hidden">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          <h3 className="text-[10px] font-mono font-black tracking-[0.2em] text-gray-500 uppercase">
+            Global Distraction Vectors
+          </h3>
+        </div>
 
-      {/* Scrollable Marquee Box */}
-      <div className="h-10 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full overflow-hidden flex items-center shadow-[0_0_30px_rgba(0,0,0,0.8)] pointer-events-auto">
-        <div className="flex items-center h-full w-max animate-marquee">
-          {/* Loop array twice to ensure seamless infinite scroll */}
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex items-center shrink-0">
-              {logs.map((log, index) => (
-                <span key={index} className="text-[11px] font-medium text-gray-300 px-6 border-r border-white/10 whitespace-nowrap">
-                  {log.city}:{" "}
-                  <span className={log.color}>
-                    {log.state} ({log.action})
-                  </span>
+        <div className="relative w-full overflow-hidden">
+          <div className="flex items-center gap-4 animate-marquee whitespace-nowrap">
+            {trending.map((tag) => (
+              <div
+                key={tag.id}
+                className="inline-flex items-center gap-2 bg-[#1a1a20] hover:bg-[#25252d] transition-colors border border-white/5 rounded-full px-3 py-0.5 group cursor-default"
+              >
+                <span className="text-base">{tag.emoji}</span>
+                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
+                  {tag.label}
                 </span>
-              ))}
-            </div>
-          ))}
+                <span className="text-[10px] font-mono font-black text-red-500 ml-1">
+                  {(
+                    (tag.count /
+                      trending.reduce(
+                        (acc: number, curr: any) => acc + curr.count,
+                        0,
+                      )) *
+                    100
+                  ).toFixed(1)}
+                  %
+                </span>
+              </div>
+            ))}
+            {/* Duplicated for smooth loop */}
+            {trending.map((tag) => (
+              <div
+                key={`${tag.id}-dup`}
+                className="inline-flex items-center gap-2 bg-[#1a1a20] hover:bg-[#25252d] transition-colors border border-white/5 rounded-full px-3 py-0.5 group cursor-default"
+              >
+                <span className="text-base">{tag.emoji}</span>
+                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
+                  {tag.label}
+                </span>
+                <span className="text-[10px] font-mono font-black text-red-500 ml-1">
+                  {(
+                    (tag.count /
+                      trending.reduce(
+                        (acc: number, curr: any) => acc + curr.count,
+                        0,
+                      )) *
+                    100
+                  ).toFixed(1)}
+                  %
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default MarqueeLog;
+}
