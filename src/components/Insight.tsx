@@ -133,6 +133,25 @@ export default function Insight({
             </div>
           </div>
 
+          {/* Color Key Guide */}
+          <div className="flex items-center justify-between px-3 py-2 bg-white/2 rounded-xl border border-white/5 shrink-0">
+             <p className="text-[8px] font-black text-white uppercase tracking-widest mr-2 opacity-50">Global Legend</p>
+             <div className="flex gap-4">
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
+                   <span className="text-[8px] font-black text-gray-500 uppercase">Productive</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
+                   <span className="text-[8px] font-black text-gray-500 uppercase">Distracted</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
+                   <span className="text-[8px] font-black text-gray-500 uppercase">Chaos</span>
+                </div>
+             </div>
+          </div>
+
           {/* Global Statistics Grid */}
           <div className="grid grid-cols-2 gap-8 shrink-0">
             <div className="relative">
