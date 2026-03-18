@@ -181,15 +181,43 @@ export default function InsightsPage() {
              <h2 className="text-2xl font-black tracking-tight mb-8 flex items-center gap-3">
                <span className="text-red-500 animate-pulse">🔥</span> {t("insightsPage.distractionCloud") || "Trending Distractions"}
              </h2>
-             <div className="flex flex-wrap gap-x-6 gap-y-4 items-center relative z-10">
-                {trendingTags.length > 0 ? trendingTags.map((tag: any, i: number) => (
-                  <span 
-                    key={i} 
-                    className={`${getTagSize(tag.count, trendingTags[0]?.count)} hover:text-blue-400 hover:scale-110 transition-all cursor-crosshair select-none`}
-                  >
-                    {tag.emoji} {tag.label}
-                  </span>
-                )) : (
+             <div className="space-y-6 relative z-10">
+                {trendingTags.length > 0 ? (
+                  trendingTags.slice(0, 5).map((tag: any, i: number) => {
+                    const colors = [
+                      "bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.4)]",
+                      "bg-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.4)]",
+                      "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]",
+                      "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]",
+                      "bg-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.4)]",
+                      "bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.4)]",
+                      "bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.4)]",
+                    ];
+                    return (
+                      <div key={i} className="flex items-center gap-4 group">
+                        <div className="w-12 h-12 shrink-0 bg-white/5 rounded-2xl flex items-center justify-center text-2xl border border-white/5 border-b-2 border-b-white/10 group-hover:bg-white/10 transition-all">
+                          {tag.emoji}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                           <div className="flex justify-between items-center px-1">
+                              <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase group-hover:text-white transition-colors">
+                                {tag.label}
+                              </p>
+                              <p className="text-[11px] font-mono font-black italic text-white/40 group-hover:text-white/60">
+                                {tag.count}
+                              </p>
+                           </div>
+                           <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden p-px">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-1500 ${colors[i % colors.length]}`}
+                                style={{ width: `${(tag.count / trendingTags[0].count) * 100}%` }}
+                              />
+                           </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
                   <div className="w-full py-12 text-center">
                     <p className="text-gray-600 font-mono text-xs italic">No distraction vectors detected in current window.</p>
                   </div>

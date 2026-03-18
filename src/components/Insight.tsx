@@ -226,26 +226,36 @@ export default function Insight({
             </div>
 
             {/* Distraction List */}
-            <div className="space-y-3 pt-3 border-t border-white/5">
-              {trending.map((tag, i) => (
-                <div key={tag.id} className="flex items-center gap-3.5 group">
-                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-base shadow-inner group-hover:bg-white/10 transition-all">
-                    {tag.emoji}
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
-                       <span className="text-gray-400">{tag.label}</span>
-                       <span className="text-gray-600 font-mono italic">{tag.count}</span>
+            <div className="space-y-4 pt-3 border-t border-white/5">
+              {trending.map((tag, i) => {
+                const colors = [
+                  "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]",
+                  "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.4)]",
+                  "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]",
+                  "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]",
+                  "bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.4)]",
+                  "bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.4)]",
+                ];
+                return (
+                  <div key={tag.id} className="flex items-center gap-3.5 group">
+                    <div className="w-8 h-8 shrink-0 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-base shadow-inner group-hover:bg-white/10 transition-all">
+                      {tag.emoji}
                     </div>
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                       <div 
-                         className="h-full bg-white/10 transition-all duration-1000" 
-                         style={{ width: `${(tag.count / (trending[0]?.count || 1)) * 100}%` }} 
-                       />
+                    <div className="flex-1 space-y-2">
+                       <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
+                          <span className="text-gray-400 group-hover:text-white transition-colors">{tag.label}</span>
+                          <span className="text-gray-600 font-mono italic group-hover:text-gray-400">{tag.count}</span>
+                       </div>
+                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-px">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-1500 ${colors[i % colors.length]}`} 
+                            style={{ width: `${(tag.count / (trending[0]?.count || 1)) * 100}%` }} 
+                          />
+                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

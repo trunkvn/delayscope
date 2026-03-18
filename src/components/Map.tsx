@@ -218,7 +218,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
           if (isoCode && isoCode !== "-99") {
             setSelectedCountry(isoCode);
             setShowUserSidebar(false);
-            mapInstance.flyTo({ center: e.lngLat, zoom: 3.5, essential: true, duration: 1200 });
+            mapInstance.flyTo({ center: e.lngLat, zoom: 4.5, essential: true, duration: 1200 });
             return;
           }
         }
@@ -315,7 +315,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
               setSelectedCountry(null);
 
               if (map.current) {
-                map.current.flyTo({ center: coords, zoom: 6, duration: 2500, essential: true });
+                map.current.flyTo({ center: coords, zoom: 9, duration: 2500, essential: true });
               }
             }
           });
@@ -338,7 +338,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
   useEffect(() => {
     if (!map.current || !userPin) return;
 
-    map.current.flyTo({ center: [userPin.lng, userPin.lat], zoom: 6, duration: 3500, essential: true });
+    map.current.flyTo({ center: [userPin.lng, userPin.lat], zoom: 9, duration: 3500, essential: true });
 
     if (userPinMarker.current) userPinMarker.current.remove();
 

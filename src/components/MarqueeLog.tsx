@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface MarqueeItem {
   id: string;
@@ -13,6 +14,7 @@ interface MarqueeItem {
 }
 
 export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
+  const { t } = useLanguage();
   const [trending, setTrending] = useState<any[]>([]);
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
     return () => clearInterval(interval);
   }, [isMapLoaded]);
 
+  const totalCount = trending.reduce((acc, curr) => acc + curr.count, 0);
+
   if (trending.length === 0) return null;
 
   return (
@@ -45,9 +49,9 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
     >
       <div className="bg-[#0f0f13]/90 backdrop-blur-xl border border-white/5 rounded-2xl px-6 py-2 shadow-2xl flex flex-col gap-1 overflow-hidden">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          {/* <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> */}
           <h3 className="text-[10px] font-mono font-black tracking-[0.2em] text-gray-500 uppercase">
-            Global Distraction Vectors
+            {t("marquee.title") || "Global Activity Stream"}
           </h3>
         </div>
 
@@ -62,16 +66,8 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
                   {tag.label}
                 </span>
-                <span className="text-[10px] font-mono font-black text-red-500 ml-1">
-                  {(
-                    (tag.count /
-                      trending.reduce(
-                        (acc: number, curr: any) => acc + curr.count,
-                        0,
-                      )) *
-                    100
-                  ).toFixed(1)}
-                  %
+                <span className={`text-[10px] font-mono font-black ml-1 ${tag.type === 'FOCUS' ? 'text-green-500' : 'text-red-500'}`}>
+                  {((tag.count / totalCount) * 100).toFixed(1)}%
                 </span>
               </div>
             ))}
@@ -85,16 +81,8 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
                   {tag.label}
                 </span>
-                <span className="text-[10px] font-mono font-black text-red-500 ml-1">
-                  {(
-                    (tag.count /
-                      trending.reduce(
-                        (acc: number, curr: any) => acc + curr.count,
-                        0,
-                      )) *
-                    100
-                  ).toFixed(1)}
-                  %
+                <span className={`text-[10px] font-mono font-black ml-1 ${tag.type === 'FOCUS' ? 'text-green-500' : 'text-red-500'}`}>
+                  {((tag.count / totalCount) * 100).toFixed(1)}%
                 </span>
               </div>
             ))}
