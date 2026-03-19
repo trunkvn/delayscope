@@ -53,7 +53,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
     const fetchCountryInfo = async () => {
       setIsDetailLoading(true);
       try {
-        const res = await fetch(`/api/country/${selectedCountry}`);
+        const res = await fetch(`/api/country/${selectedCountry}?period=${period}`);
         const data = await res.json();
         setSelectedCountryInfo(data);
       } catch (e) {
@@ -369,8 +369,8 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
     el.className = "relative flex items-center justify-center w-8 h-8 cursor-pointer group";
     const colorClass = userPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500";
     el.innerHTML = `
-      <div class="absolute inset-[-14px] rounded-full ${colorClass} animate-ping opacity-40 pointer-events-none"></div>
-      <div class="absolute inset-[-6px] rounded-full ${colorClass} opacity-60 blur-[3px] pointer-events-none"></div>
+      <div class="absolute -inset-3.5 rounded-full ${colorClass} animate-ping opacity-40 pointer-events-none"></div>
+      <div class="absolute -inset-1.5 rounded-full ${colorClass} opacity-60 blur-[3px] pointer-events-none"></div>
       <div class="relative w-4 h-4 rounded-full bg-white z-10 shadow-[0_0_20px_rgba(255,255,255,1)] border-2 border-white/20"></div>
     `;
 
@@ -510,7 +510,9 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
                 </div>
 
                 <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center relative overflow-hidden">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Deadlines Missed Today</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">
+                    Deadlines Missed ({period === "24h" ? "Today" : period})
+                  </p>
                   <p className="text-4xl font-black tracking-widest">{selectedCountryInfo.missedDeadlines?.toLocaleString()}</p>
                 </div>
                 

@@ -11,16 +11,29 @@ export async function GET(
     // Resolve params properly (await requested for Next.js 15)
     const iso = (await (params as any)).iso.toUpperCase();
 
-    // 1. Get stats from Redis (for quick global context if needed)
-    // 2. Query Prisma for top 3 tags in this country in the last 24h
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // Read period from query params
+    const { searchParams } = new URL(req.url);
+    const period = searchParams.get("period") || "24h";
+    
+    const now = new Date();
+    let startDate = new Date();
 
-    const [topTags, countryCount] = await Promise.all([
+    switch (period) {
+      case "1h": startDate.setHours(now.getHours() - 1); break;
+      case "6h": startDate.setHours(now.getHours() - 6); break;
+      case "24h": startDate.setHours(now.getHours() - 24); break;
+      case "7d": startDate.setDate(now.getDate() - 7); break;
+      case "15d": startDate.setDate(now.getDate() - 15); break;
+      default: startDate.setHours(now.getHours() - 24);
+    }
+
+    // Query Prisma for top 3 tags and totals in this country for the period
+    const [topTags, countryStatsByType] = await Promise.all([
       prisma.log.groupBy({
         by: ['tagId'],
         where: {
           countryCode: iso,
-          createdAt: { gte: twentyFourHoursAgo }
+          createdAt: { gt: startDate }
         },
         _count: {
           tagId: true
@@ -32,10 +45,17 @@ export async function GET(
         },
         take: 3
       }),
-      prisma.log.count({
+      prisma.log.groupBy({
+        by: ['type'],
         where: {
           countryCode: iso,
-          createdAt: { gte: twentyFourHoursAgo }
+          createdAt: { gt: startDate }
+        },
+        _count: {
+          _all: true
+        },
+        _sum: {
+          score: true
         }
       })
     ]);
@@ -50,19 +70,23 @@ export async function GET(
       };
     });
 
-    // Derived metric: Missed Deadlines (Flavor text)
-    // Logic: Total logs in country * (Avg Guilt Index of country / 100)
-    const avgScore = await prisma.log.aggregate({
-      where: { countryCode: iso },
-      _avg: { score: true }
+    // Calculate Weighted Delay Index (avgGuilt)
+    let totalLogs = 0;
+    let proSum = 0;
+    
+    countryStatsByType.forEach(item => {
+      totalLogs += item._count._all;
+      if (item.type === "PROCRASTINATE") {
+        proSum += item._sum.score || 0;
+      }
     });
 
-    const averageGuilt = Math.round(avgScore._avg.score || 0);
-    const missedDeadlines = Math.floor(countryCount * (averageGuilt / 40)); 
+    const averageGuilt = Math.round(proSum / (totalLogs || 1));
+    const missedDeadlines = Math.floor(proSum / 100); 
 
     return NextResponse.json({
       iso,
-      count: countryCount,
+      count: totalLogs,
       topTags: formattedTags,
       averageGuilt,
       missedDeadlines: Math.max(0, missedDeadlines)
