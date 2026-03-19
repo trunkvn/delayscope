@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Since we need historical stats for specific periods, we query Prisma
-    const [globalStats, trendingRaw, activeRaw, hourlyStats, topRaw] = await Promise.all([
+    const [globalStats, trendingRaw, activeRaw, hourlyStats, topRaw, focusRaw] = await Promise.all([
       // Global stats grouped by type
       prisma.log.groupBy({
         by: ["type"],
@@ -53,7 +53,15 @@ export async function GET(req: NextRequest) {
       // Top delayed countries for period
       prisma.log.groupBy({
         by: ["countryCode"],
-        where: { createdAt: { gt: startDate } },
+        where: { createdAt: { gt: startDate }, type: "PROCRASTINATE" },
+        _count: { id: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 3,
+      }),
+      // Top focus countries for period
+      prisma.log.groupBy({
+        by: ["countryCode"],
+        where: { createdAt: { gt: startDate }, type: "FOCUS" },
         _count: { id: true },
         orderBy: { _count: { id: "desc" } },
         take: 3,
@@ -84,8 +92,13 @@ export async function GET(req: NextRequest) {
       return { ...tag, count: item._count?.tagId || 0 };
     });
 
-    // Top Countries formatting
-    const topCountries = topRaw.map(item => ({
+    // Formatting Leaders
+    const delayLeaders = topRaw.map(item => ({
+      code: item.countryCode,
+      count: item._count?.id || 0
+    }));
+
+    const focusLeaders = focusRaw.map(item => ({
       code: item.countryCode,
       count: item._count?.id || 0
     }));
@@ -105,7 +118,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Local Pulse
+    // Local Pulse (Existing Logic)
     let localStats = null;
     if (userCountry) {
       const localData = await prisma.log.groupBy({
@@ -161,7 +174,8 @@ export async function GET(req: NextRequest) {
       },
       local: localStats,
       trendingTags,
-      topCountries,
+      delayLeaders,
+      focusLeaders,
     });
   } catch (error) {
     console.error("Stats API Error:", error);

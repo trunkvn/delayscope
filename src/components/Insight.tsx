@@ -38,7 +38,8 @@ export default function Insight({
   const [stats, setStats] = useState<Stats | null>(null);
   const [local, setLocal] = useState<LocalStats | null>(null);
   const [trending, setTrending] = useState<any[]>([]);
-  const [topCountries, setTopCountries] = useState<any[]>([]);
+  const [delayLeaders, setDelayLeaders] = useState<any[]>([]);
+  const [focusLeaders, setFocusLeaders] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isMapLoaded) return;
@@ -60,8 +61,11 @@ export default function Insight({
         if (data.trendingTags) {
           setTrending(data.trendingTags.slice(0, 3));
         }
-        if (data.topCountries) {
-          setTopCountries(data.topCountries);
+        if (data.delayLeaders) {
+          setDelayLeaders(data.delayLeaders);
+        }
+        if (data.focusLeaders) {
+          setFocusLeaders(data.focusLeaders);
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
@@ -190,7 +194,7 @@ export default function Insight({
 
             <div className="relative pl-6 border-l border-white/5">
               <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" /> LIVE AGENTS
+                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" /> LIVE ACTIVITY
               </p>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-black text-gray-100 tracking-tighter">
@@ -202,23 +206,46 @@ export default function Insight({
             </div>
           </div>
 
-          {/* Global Leaders Section */}
-          <div className="space-y-3 shrink-0">
-             <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-2">
-                <span className="w-4 h-px bg-white/5" /> GLOBAL DELAY LEADERS
-             </p>
-             <div className="grid grid-cols-3 gap-2">
-                {topCountries.length > 0 ? topCountries.map((c, i) => (
-                  <div key={c.code} className="bg-white/2 border border-white/5 rounded-xl p-2.5 flex flex-col items-center gap-1 group hover:border-white/20 transition-all">
-                     <span className="text-[9px] font-black text-gray-600 mb-0.5">#{i+1}</span>
-                     <span className="text-base font-black text-white tracking-tighter">{c.code}</span>
-                     <div className="w-full h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
-                        <div className="h-full bg-red-500/50" style={{ width: `${(c.count / (topCountries[0]?.count || 1)) * 100}%` }} />
+          {/* Global Rankings */}
+          <div className="grid grid-cols-2 gap-4 shrink-0">
+             {/* Delay Leaders */}
+             <div className="space-y-3">
+                <p className="text-[8px] font-black text-red-500/50 uppercase tracking-widest flex items-center gap-2">
+                   <span className="w-2 h-px bg-red-500/20" /> DELAY LEADERS
+                </p>
+                <div className="flex flex-col gap-2">
+                   {delayLeaders.length > 0 ? delayLeaders.map((c, i) => (
+                     <div key={`delay-${c.code}`} className="bg-white/2 border border-white/5 rounded-lg p-2.5 flex items-center justify-between group hover:border-red-500/20 transition-all">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                           <span className="text-[9px] font-black text-gray-600">#{i+1}</span>
+                           <span className="text-sm font-black text-white tracking-tighter truncate">{c.code}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-red-500/60 ml-2">{c.count}</span>
                      </div>
-                  </div>
-                )) : (
-                  <div className="col-span-3 text-center py-2 text-[10px] text-gray-600 font-black tracking-widest">AWAITING SIGNALS...</div>
-                )}
+                   )) : (
+                     <div className="text-center py-2 text-[9px] text-gray-700 font-black tracking-widest uppercase">---</div>
+                   )}
+                </div>
+             </div>
+
+             {/* Focus Leaders */}
+             <div className="space-y-3">
+                <p className="text-[8px] font-black text-green-500/50 uppercase tracking-widest flex items-center gap-2">
+                   <span className="w-2 h-px bg-green-500/20" /> FOCUS LEADERS
+                </p>
+                <div className="flex flex-col gap-2">
+                   {focusLeaders.length > 0 ? focusLeaders.map((c, i) => (
+                     <div key={`focus-${c.code}`} className="bg-white/2 border border-white/5 rounded-lg p-2.5 flex items-center justify-between group hover:border-green-500/20 transition-all">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                           <span className="text-[9px] font-black text-gray-600">#{i+1}</span>
+                           <span className="text-sm font-black text-white tracking-tighter truncate">{c.code}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-green-500/60 ml-2">{c.count}</span>
+                     </div>
+                   )) : (
+                     <div className="text-center py-2 text-[9px] text-gray-700 font-black tracking-widest uppercase">---</div>
+                   )}
+                </div>
              </div>
           </div>
 
