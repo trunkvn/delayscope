@@ -23,11 +23,15 @@ interface LocalStats {
 export default function Insight({ 
   isMapLoaded, 
   countryCode,
-  userScore
+  userScore,
+  period,
+  onPeriodChange
 }: { 
   isMapLoaded: boolean;
   countryCode?: string | null;
   userScore?: number;
+  period: string;
+  onPeriodChange: (p: string) => void;
 }) {
   const { t } = useLanguage();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -40,7 +44,10 @@ export default function Insight({
 
     const fetchStats = async () => {
       try {
-        const url = countryCode ? `/api/stats?country=${countryCode}` : "/api/stats";
+        let url = countryCode ? `/api/stats?country=${countryCode}` : "/api/stats";
+        // Append period if available
+        url += (url.includes("?") ? "&" : "?") + `period=${period}`;
+        
         const res = await fetch(url);
         const data = await res.json();
         if (data.global) {
@@ -63,7 +70,7 @@ export default function Insight({
     fetchStats();
     const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
-  }, [isMapLoaded, countryCode]);
+  }, [isMapLoaded, countryCode, period]);
 
   const avgGuilt = stats && stats.proCount > 0 
     ? Math.round(stats.totalGuilt / stats.proCount) 
@@ -122,15 +129,31 @@ export default function Insight({
                 <div className="absolute inset-0 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
               </div>
               <div className="flex flex-col">
-                <h3 className="text-[11px] font-black tracking-[0.4em] text-white uppercase leading-none">
+                <h3 className="text-[12px] font-black tracking-[0.5em] text-white uppercase leading-none">
                   LATERSYNC // CORE
                 </h3>
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-1.5">INTENTION MONITORING SYSTEM</p>
+                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-2">INTENTION MONITORING SYSTEM</p>
               </div>
             </div>
-            <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 ${status.color}`}>
+            <div className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm bg-white/5 border border-white/10 ${status.color}`}>
               {status.label}
             </div>
+          </div>
+
+          {/* Time Period Filter Integrated */}
+          <div className="flex bg-white/5 p-1 rounded-2xl gap-1 border border-white/5">
+            {["1h", "6h", "24h", "7d", "15d"].map((p) => (
+              <button
+                key={p}
+                onClick={() => onPeriodChange(p)}
+                className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all
+                  ${period === p 
+                    ? "bg-blue-600 text-white shadow-lg" 
+                    : "text-gray-500 hover:text-white hover:bg-white/5"}`}
+              >
+                {p}
+              </button>
+            ))}
           </div>
 
           {/* Color Key Guide */}
@@ -155,14 +178,14 @@ export default function Insight({
           {/* Global Statistics Grid */}
           <div className="grid grid-cols-2 gap-8 shrink-0">
             <div className="relative">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                  <span className="w-1 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" /> AVG. GUILT
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-white tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+                <span className="text-5xl font-black text-white tracking-tighter drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
                   {avgGuilt}
                 </span>
-                <span className="text-[10px] font-black text-gray-600">/ 100</span>
+                <span className="text-[12px] font-black text-gray-600">/ 100</span>
               </div>
             </div>
 

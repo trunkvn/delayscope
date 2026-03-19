@@ -32,6 +32,7 @@ export default function Home() {
     desc: string;
   } | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [period, setPeriod] = useState<string>("24h");
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -85,8 +86,10 @@ export default function Home() {
           isMapLoaded={isMapLoaded} 
           countryCode={countryCode} 
           userScore={userPin?.score} 
+          period={period}
+          onPeriodChange={setPeriod}
         />
-        <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} />
+        <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} period={period} />
         <MarqueeLog isMapLoaded={isMapLoaded} />
       </div>
 

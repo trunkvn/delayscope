@@ -17,14 +17,14 @@ interface MapProps {
     desc: string;
   } | null;
   onLoad?: () => void;
+  period: string;
 }
 
-const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
+const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const userPinMarker = useRef<maplibregl.Marker | null>(null);
-  const globalPinMarkers = useRef<maplibregl.Marker[]>([]);
   
   const [showUserSidebar, setShowUserSidebar] = useState(false);
   const [activeSidebarPin, setActiveSidebarPin] = useState<any>(null);
@@ -83,20 +83,92 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
     fetchPinInfo();
   }, [activeSidebarPin?.id]);
 
+  // Handle color updates when period changes
+  const updateMapColors = useCallback(async (selectedPeriod: string) => {
+    if (!map.current) return;
+    
+    try {
+      const res = await fetch(`/api/map/colors?period=${selectedPeriod}`);
+      const countryStats = await res.json();
+      
+      const matchExpression: any[] = ["match", ["coalesce", ["get", "ISO_A2_EH"], ["get", "ISO_A2"]]];
+      const newColorsMap: Record<string, string> = {};
+      
+      Object.entries(countryStats).forEach(([code, stats]: [string, any]) => {
+        const score = stats.averageGuilt;
+        let color = "rgba(0,0,0,0)";
+        if (score > 0) {
+          if (score >= 75) color = "rgba(239, 68, 68, 0.7)"; 
+          else if (score >= 36) color = "rgba(245, 158, 11, 0.7)"; 
+          else color = "rgba(34, 197, 94, 0.7)"; 
+        }
+        matchExpression.push(code, color);
+        newColorsMap[code] = color;
+      });
+      
+      setCountryColorsMap(newColorsMap);
+      matchExpression.push("rgba(0,0,0,0)");
+
+      if (map.current.getLayer("countries-fill")) {
+        map.current.setPaintProperty("countries-fill", "fill-color", matchExpression);
+      }
+    } catch (e) {
+      console.error("Failed to update map colors:", e);
+    }
+  }, []);
+
+  // Handle data updates when period changes
+  useEffect(() => {
+    if (!isLoading) {
+      updateMapColors(period);
+      
+      const fetchPins = async () => {
+        if (!map.current || !map.current.getSource("global-pins")) return;
+        try {
+          const pinRes = await fetch(`/api/logs/map?period=${period}`);
+          const pinData = await pinRes.json();
+          
+          geoJsonFeatures.current = pinData.map((pin: any) => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
+            properties: { 
+              id: pin.id, 
+              type: pin.type.toLowerCase(), 
+              score: pin.score, 
+              country: pin.countryCode,
+              timestamp: pin.createdAt 
+            },
+          }));
+
+          const source = map.current.getSource("global-pins") as maplibregl.GeoJSONSource;
+          if (source) {
+            source.setData({
+              type: "FeatureCollection",
+              features: geoJsonFeatures.current,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to fetch period pins:", e);
+        }
+      };
+      
+      fetchPins();
+    }
+  }, [period, isLoading, updateMapColors]);
+
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
     const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
       style: "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-      center: [106.6833, 10.7769],
-      zoom: 2.5,
-      attributionControl: false,
+      center: [20, 20],
+      zoom: 1.5,
+      pitch: 0,
     });
 
     map.current = mapInstance;
 
-    // Setup Pusher Listener for real-time updates
     const pusherKey = process.env.NEXT_PUBLIC_SOKETI_APP_KEY!;
     const pusherHost = process.env.NEXT_PUBLIC_SOKETI_HOST || "127.0.0.1";
     const pusherPort = Number(process.env.NEXT_PUBLIC_SOKETI_PORT) || 6001;
@@ -113,7 +185,6 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
     const channel = pusherClient.subscribe("latermap-channel");
 
     channel.bind("new-log", (data: any) => {
-      // 1. Add notification
       const isSelf = userPinRef.current && userPinRef.current.id === data.id;
       const newNotif = {
         id: Date.now(),
@@ -130,7 +201,6 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
         setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
       }, 5000);
 
-      // 2. Add marker to map
       if (!map.current) return;
 
       const source = map.current.getSource("global-pins") as maplibregl.GeoJSONSource;
@@ -146,11 +216,12 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
             type: data.type.toLowerCase(),
             score: data.score,
             country: data.country,
+            timestamp: Date.now(),
           },
         };
         
         geoJsonFeatures.current.unshift(newFeature);
-        if (geoJsonFeatures.current.length > 200) geoJsonFeatures.current.pop();
+        if (geoJsonFeatures.current.length > 500) geoJsonFeatures.current.pop();
         
         source.setData({
           type: "FeatureCollection",
@@ -160,56 +231,98 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
     });
 
     mapInstance.on("load", async () => {
-      // Parallel fetch for speed
-      const [geoRes, statsRes] = await Promise.all([
+      const [geoRes] = await Promise.all([
         fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_countries.geojson"),
-        fetch("/api/map/colors")
       ]);
 
       const geojson = await geoRes.json();
-      const countryStats = await statsRes.json();
-
+      
       mapInstance.addSource("countries", {
         type: "geojson",
         data: geojson,
       });
-
-      const matchExpression: any[] = ["match", ["coalesce", ["get", "ISO_A2_EH"], ["get", "ISO_A2"]]];
-      const newColorsMap: Record<string, string> = {};
-      
-      // Build dynamic coloring from REAL data
-      Object.entries(countryStats).forEach(([code, stats]: [string, any]) => {
-        const score = stats.averageGuilt;
-        let color = "rgba(0,0,0,0)";
-        if (score > 0) {
-          if (score >= 75) color = "rgba(239, 68, 68, 0.7)"; // Red (Level 3)
-          else if (score >= 36) color = "rgba(245, 158, 11, 0.7)"; // Amber (Level 2)
-          else color = "rgba(34, 197, 94, 0.7)"; // Green (Level 1)
-        }
-        matchExpression.push(code, color);
-        newColorsMap[code] = color;
-      });
-      
-      setCountryColorsMap(newColorsMap);
-      matchExpression.push("rgba(0,0,0,0)");
 
       mapInstance.addLayer({
         id: "countries-fill",
         type: "fill",
         source: "countries",
         paint: {
-          "fill-color": matchExpression as any,
+          "fill-color": "rgba(0,0,0,0)",
           "fill-opacity": 0.55,
         },
       });
 
-      mapInstance.on("click", (e) => {
-        if (!mapInstance.getLayer("countries-fill")) return;
+      mapInstance.addSource("global-pins", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
 
-        if (mapInstance.getLayer("global-pins-hitbox")) {
-          const pinFeatures = mapInstance.queryRenderedFeatures(e.point, { layers: ["global-pins-hitbox"] });
-          if (pinFeatures.length > 0) return;
+      mapInstance.addLayer({
+        id: "global-pins-halo",
+        type: "circle",
+        source: "global-pins",
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 4, 10, 16],
+          "circle-color": ["match", ["get", "type"], "procrastinate", "rgba(239, 68, 68, 0.25)", "focus", "rgba(34, 197, 94, 0.25)", "transparent"],
+          "circle-blur": 0.8,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: "global-pins-layer",
+        type: "circle",
+        source: "global-pins",
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 2.5, 10, 5],
+          "circle-color": ["match", ["get", "type"], "procrastinate", "#ef4444", "focus", "#22c55e", "#ffffff"],
+          "circle-opacity": 0.9,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "rgba(255, 255, 255, 0.5)",
+        },
+      });
+
+      mapInstance.addLayer({
+        id: "global-pins-hitbox",
+        type: "circle",
+        source: "global-pins",
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 12, 10, 24],
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-opacity": 0,
+        },
+      });
+
+      mapInstance.on("mouseenter", "global-pins-hitbox", () => {
+        mapInstance.getCanvas().style.cursor = "pointer";
+      });
+      mapInstance.on("mouseleave", "global-pins-hitbox", () => {
+        mapInstance.getCanvas().style.cursor = "";
+      });
+
+      mapInstance.on("click", "global-pins-hitbox", (e) => {
+        if (e.features && e.features.length > 0) {
+          const props = e.features[0].properties;
+          const coords = (e.features[0].geometry as any).coordinates;
+          
+          setShowUserSidebar(true);
+          setActiveSidebarPin({
+            id: props?.id,
+            lat: coords[1],
+            lng: coords[0],
+            type: props?.type,
+            score: props?.score,
+            country: props?.country,
+            timestamp: props?.timestamp,
+            isSelf: false,
+          });
+          setSelectedCountry(null);
+          mapInstance.flyTo({ center: coords, zoom: 9, duration: 2500, essential: true });
         }
+      });
+
+      mapInstance.on("click", (e) => {
+        const pinFeatures = mapInstance.queryRenderedFeatures(e.point, { layers: ["global-pins-hitbox"] });
+        if (pinFeatures.length > 0) return;
 
         const features = mapInstance.queryRenderedFeatures(e.point, { layers: ["countries-fill"] });
         if (features.length > 0) {
@@ -228,103 +341,9 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
 
       setIsLoading(false);
       if (onLoad) setTimeout(() => onLoad(), 200);
-
       setTimeout(() => {
         mapInstance.flyTo({ zoom: 4, duration: 2000, essential: true });
       }, 100);
-
-      // Fetch and display real-time pins
-      const fetchPins = async () => {
-        try {
-          const pinRes = await fetch("/api/logs/map");
-          const pinData = await pinRes.json();
-          if (!map.current) return;
-
-          geoJsonFeatures.current = pinData.map((pin: any) => ({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
-            properties: { id: pin.id, type: pin.type.toLowerCase(), score: pin.score, country: pin.countryCode },
-          }));
-
-          map.current.addSource("global-pins", {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: geoJsonFeatures.current,
-            },
-          });
-
-          map.current.addLayer({
-            id: "global-pins-halo",
-            type: "circle",
-            source: "global-pins",
-            paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 4, 10, 16],
-              "circle-color": ["match", ["get", "type"], "procrastinate", "rgba(239, 68, 68, 0.25)", "focus", "rgba(34, 197, 94, 0.25)", "transparent"],
-              "circle-blur": 0.8,
-            },
-          });
-
-          map.current.addLayer({
-            id: "global-pins-layer",
-            type: "circle",
-            source: "global-pins",
-            paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 2.5, 10, 5],
-              "circle-color": ["match", ["get", "type"], "procrastinate", "#ef4444", "focus", "#22c55e", "#ffffff"],
-              "circle-opacity": 0.9,
-              "circle-stroke-width": 1,
-              "circle-stroke-color": "rgba(255, 255, 255, 0.5)",
-            },
-          });
-
-          map.current.addLayer({
-            id: "global-pins-hitbox",
-            type: "circle",
-            source: "global-pins",
-            paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 12, 10, 24],
-              "circle-color": "rgba(0,0,0,0)",
-              "circle-opacity": 0,
-            },
-          });
-
-          map.current.on("mouseenter", "global-pins-hitbox", () => {
-            if (map.current) map.current.getCanvas().style.cursor = "pointer";
-          });
-          map.current.on("mouseleave", "global-pins-hitbox", () => {
-            if (map.current) map.current.getCanvas().style.cursor = "";
-          });
-
-          map.current.on("click", "global-pins-hitbox", (e) => {
-            if (e.features && e.features.length > 0) {
-              const props = e.features[0].properties;
-              const geo = e.features[0].geometry;
-              const coords = (geo as any).coordinates;
-              
-              setShowUserSidebar(true);
-              setActiveSidebarPin({
-                id: props?.id,
-                lat: coords[1],
-                lng: coords[0],
-                type: props?.type,
-                score: props?.score,
-                country: props?.country,
-                isSelf: false,
-              });
-              setSelectedCountry(null);
-
-              if (map.current) {
-                map.current.flyTo({ center: coords, zoom: 9, duration: 2500, essential: true });
-              }
-            }
-          });
-        } catch (e) {
-          console.error("Failed to fetch map pins:", e);
-        }
-      };
-
-      fetchPins();
     });
 
     return () => {
@@ -550,7 +569,11 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad }) => {
                   </div>
                   <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
                     <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Time</p>
-                    <p className="font-bold">{activeSidebarPin.timestamp ? new Date(activeSidebarPin.timestamp).toLocaleTimeString() : "Just now"}</p>
+                    <p className="font-bold">
+                      {activeSidebarPin.timestamp 
+                        ? (new Date(activeSidebarPin.timestamp).toLocaleDateString("en-GB") + " " + new Date(activeSidebarPin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+                        : "Just now"}
+                    </p>
                   </div>
                 </div>
               </div>
