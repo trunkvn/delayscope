@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Since we need historical stats for specific periods, we query Prisma
-    // Redis mainly stores all-time or real-time counters.
     const [globalStats, trendingRaw, activeRaw, hourlyStats, topRaw] = await Promise.all([
-      // Global stats for period
-      prisma.log.aggregate({
+      // Global stats grouped by type
+      prisma.log.groupBy({
+        by: ["type"],
         where: { createdAt: { gt: startDate } },
         _count: { _all: true },
         _sum: { score: true },
@@ -40,9 +40,12 @@ export async function GET(req: NextRequest) {
       }),
       // Active in last 10m (always live)
       redis.zcount("active:activity", Date.now() - 10 * 60 * 1000, "+inf"),
-      // Hourly distribution for period
+      // Hourly distribution for period (Weighted Formula)
       prisma.$queryRaw`
-        SELECT EXTRACT(HOUR FROM "createdAt") as hour, AVG(score) as avg_score
+        SELECT 
+           EXTRACT(HOUR FROM "createdAt") as hour, 
+           SUM(CASE WHEN "type" = 'PROCRASTINATE' THEN "score" ELSE 0 END) as delay_sum,
+           COUNT(*) as total_count
         FROM "Log"
         WHERE "createdAt" > ${startDate}
         GROUP BY hour
@@ -57,6 +60,24 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // Process global stats based on formula
+    let totalLogs = 0;
+    let totalGuilt = 0;
+    let totalFocusScore = 0;
+    let proCount = 0;
+    let focusCount = 0;
+
+    globalStats.forEach(item => {
+      totalLogs += item._count._all;
+      if (item.type === "PROCRASTINATE") {
+        totalGuilt += item._sum.score || 0;
+        proCount = item._count._all;
+      } else {
+        totalFocusScore += item._sum.score || 0;
+        focusCount = item._count._all;
+      }
+    });
+
     // Format trending tags
     const trendingTags = trendingRaw.map(item => {
       const tag = TAGS.find(t => t.id === item.tagId);
@@ -69,14 +90,14 @@ export async function GET(req: NextRequest) {
       count: item._count?.id || 0
     }));
 
-    // Format hourly sparkline & Danger Hour
+    // Format hourly sparkline
     const hourlyData = Array(24).fill(0);
     let dangerHour = "N/A";
     let maxAvg = 0;
 
     hourlyStats.forEach((row: any) => {
       const h = parseInt(row.hour);
-      const avg = Math.round(Number(row.avg_score) || 0);
+      const avg = Math.round(Number(row.delay_sum) / (Number(row.total_count) || 1));
       hourlyData[h] = avg;
       if (avg > maxAvg) {
         maxAvg = avg;
@@ -87,7 +108,8 @@ export async function GET(req: NextRequest) {
     // Local Pulse
     let localStats = null;
     if (userCountry) {
-      const localData = await prisma.log.aggregate({
+      const localData = await prisma.log.groupBy({
+        by: ["type"],
         where: { 
           countryCode: userCountry,
           createdAt: { gt: startDate }
@@ -96,23 +118,43 @@ export async function GET(req: NextRequest) {
         _sum: { score: true },
       });
 
-      if (localData._count._all > 0) {
+      if (localData.length > 0) {
+        let localTotal = 0;
+        let localProSum = 0;
+        let localFocusSum = 0;
+        let localProCount = 0;
+        let localFocusCount = 0;
+
+        localData.forEach(item => {
+          localTotal += item._count._all;
+          if (item.type === "PROCRASTINATE") {
+            localProSum += item._sum.score || 0;
+            localProCount = item._count._all;
+          } else {
+            localFocusSum += item._sum.score || 0;
+            localFocusCount = item._count._all;
+          }
+        });
+
         localStats = {
-          proCount: localData._count._all, // Simplified for now
-          focusCount: 0, 
-          totalGuilt: localData._sum.score || 0,
-          avgGuilt: Math.round((localData._sum.score || 0) / localData._count._all),
+          proCount: localProCount,
+          focusCount: localFocusCount, 
+          totalGuilt: localProSum,
+          avgGuilt: Math.round(localProSum / (localTotal || 1)),
+          avgFocus: Math.round(localFocusSum / (localFocusCount || 1)),
         };
       }
     }
 
     return NextResponse.json({
       global: {
-        totalLogs: globalStats._count._all,
-        proCount: globalStats._count._all, // Simplified mapping
-        focusCount: 0,
-        totalGuilt: globalStats._sum.score || 0,
-        totalFocus: 0,
+        totalLogs,
+        proCount,
+        focusCount,
+        totalGuilt,
+        totalFocus: totalFocusScore,
+        avgGuilt: Math.round(totalGuilt / (totalLogs || 1)),
+        avgFocus: Math.round(totalFocusScore / (focusCount || 1)),
         activeDelayers: activeRaw,
         dangerHour,
         hourlySparkline: hourlyData,

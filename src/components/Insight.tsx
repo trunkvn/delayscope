@@ -9,6 +9,7 @@ interface Stats {
   focusCount: number;
   totalGuilt: number;
   totalFocus: number;
+  avgGuilt: number;
   activeDelayers: number;
   dangerHour: string;
   hourlySparkline: number[];
@@ -72,9 +73,7 @@ export default function Insight({
     return () => clearInterval(interval);
   }, [isMapLoaded, countryCode, period]);
 
-  const avgGuilt = stats && stats.proCount > 0 
-    ? Math.round(stats.totalGuilt / stats.proCount) 
-    : 0;
+  const avgGuilt = stats?.avgGuilt || 0;
   
   const getStatusLabel = (score: number) => {
     if (score < 35) return { label: "Productive", color: "text-green-500" };

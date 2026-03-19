@@ -32,6 +32,7 @@ export default function LogActionModal({
   const [lastLogId, setLastLogId] = useState<string | undefined>(undefined);
   const [errorHeader, setErrorHeader] = useState<string | null>(null);
   const [syncMessageIndex, setSyncMessageIndex] = useState(0);
+  const [stats, setStats] = useState<any>(null);
 
   const syncMessages = [
     "Encrypting neural signal...",
@@ -48,7 +49,20 @@ export default function LogActionModal({
       }, 400); 
       return () => clearInterval(interval);
     }
-  }, [step]);
+    
+    if (step === 4) {
+      const fetchCurrentStats = async () => {
+        try {
+          const res = await fetch(`/api/stats?period=24h${countryCode ? `&country=${countryCode}` : ""}`);
+          const data = await res.json();
+          setStats(data);
+        } catch (e) {
+          console.error("Failed to fetch result stats:", e);
+        }
+      };
+      fetchCurrentStats();
+    }
+  }, [step, countryCode]);
 
   if (!isOpen) return null;
 
@@ -448,12 +462,20 @@ export default function LogActionModal({
                     </p>
                     <div>
                       <p className="text-xl font-black text-gray-200">
-                        {actionType === "procrastinate" ? "72/100" : "65/100"}
+                        {actionType === "procrastinate" 
+                           ? `${stats?.global?.avgGuilt || 70}/100` 
+                           : `${stats?.global?.avgFocus || 80}/100`}
                       </p>
                       <p
-                        className={`text-[11px] font-bold mt-1 ${score > 72 && actionType === "procrastinate" ? "text-red-400" : "text-green-400"}`}
+                        className={`text-[11px] font-bold mt-1 ${
+                          actionType === "procrastinate"
+                            ? (score > (stats?.global?.avgGuilt || 70) ? "text-red-400" : "text-green-400")
+                            : (score > (stats?.global?.avgFocus || 80) ? "text-green-400" : "text-red-400")
+                        }`}
                       >
-                        {score > 72 ? `▲ ${t("modal.aboveAvg")}` : `▼ ${t("modal.belowAvg")}`}
+                        {actionType === "procrastinate"
+                          ? (score > (stats?.global?.avgGuilt || 70) ? `▲ ${t("modal.aboveAvg")}` : `▼ ${t("modal.belowAvg")}`)
+                          : (score > (stats?.global?.avgFocus || 80) ? `▲ ${t("modal.aboveAvg")}` : `▼ ${t("modal.belowAvg")}`)}
                       </p>
                     </div>
                   </div>
@@ -466,12 +488,20 @@ export default function LogActionModal({
                     </p>
                     <div>
                       <p className="text-xl font-black text-gray-200">
-                        {actionType === "procrastinate" ? "85/100" : "60/100"}
+                        {actionType === "procrastinate" 
+                           ? `${stats?.local?.avgGuilt || 65}/100` 
+                           : `${stats?.local?.avgFocus || 75}/100`}
                       </p>
                       <p
-                        className={`text-[11px] font-bold mt-1 ${(score > 85 && actionType === "procrastinate") || (score < 60 && actionType === "focus") ? "text-red-400" : "text-green-400"}`}
+                        className={`text-[11px] font-bold mt-1 ${
+                          actionType === "procrastinate"
+                            ? (score > (stats?.local?.avgGuilt || 65) ? "text-red-400" : "text-green-400")
+                            : (score > (stats?.local?.avgFocus || 75) ? "text-green-400" : "text-red-400")
+                        }`}
                       >
-                        {score > 85 ? `▲ ${t("modal.settingRecords")}` : `▼ ${t("modal.playingSafe")}`}
+                        {score > (actionType === "procrastinate" ? (stats?.local?.avgGuilt || 65) : (stats?.local?.avgFocus || 75)) 
+                          ? `▲ ${t("modal.settingRecords")}` 
+                          : `▼ ${t("modal.playingSafe")}`}
                       </p>
                     </div>
                   </div>

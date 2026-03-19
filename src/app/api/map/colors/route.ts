@@ -30,15 +30,16 @@ export async function GET(req: NextRequest) {
         startDate.setHours(now.getHours() - 24);
     }
 
-    // Get average score and total logs per country for the specified period
+    // Get sum and count per country and type for the specified period
+    // Formula: DelayIndex = (Sum(Procrastinate Score) / Total Count)
     const results = await prisma.log.groupBy({
-      by: ["countryCode"],
+      by: ["countryCode", "type"],
       where: {
         createdAt: {
           gt: startDate,
         },
       },
-      _avg: {
+      _sum: {
         score: true,
       },
       _count: {
@@ -46,16 +47,31 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const countryStats: Record<string, { averageGuilt: number; count: number }> = {};
+    const countrySums: Record<string, { proSum: number; totalCount: number }> = {};
     
     results.forEach((item) => {
       if (item.countryCode) {
-        countryStats[item.countryCode] = {
-          averageGuilt: Math.round(item._avg.score || 0),
-          count: item._count._all,
-        };
+        if (!countrySums[item.countryCode]) {
+          countrySums[item.countryCode] = { proSum: 0, totalCount: 0 };
+        }
+        
+        // Always add to total count
+        countrySums[item.countryCode].totalCount += item._count._all;
+        
+        // Only add to sum if it's procrastination
+        if (item.type === "PROCRASTINATE") {
+          countrySums[item.countryCode].proSum += item._sum.score || 0;
+        }
       }
     });
+
+    const countryStats: Record<string, { averageGuilt: number; count: number }> = {};
+    for (const [code, stats] of Object.entries(countrySums)) {
+      countryStats[code] = {
+        averageGuilt: Math.round(stats.proSum / (stats.totalCount || 1)),
+        count: stats.totalCount,
+      };
+    }
 
     return NextResponse.json(countryStats);
   } catch (error) {
