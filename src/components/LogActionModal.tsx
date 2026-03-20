@@ -136,18 +136,18 @@ export default function LogActionModal({
       />
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-zinc-900 border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col transform transition-all">
+      <div className="relative w-full max-w-lg bg-card border border-border-theme rounded-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all duration-500">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 md:p-6 border-b border-white/10 bg-zinc-950/50">
+        <div className="flex justify-between items-center p-4 md:p-6 border-b border-border-theme bg-foreground/5 transition-colors">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            <h2 className="text-sm md:text-lg font-bold tracking-wider text-white uppercase truncate">
+            <h2 className="text-sm md:text-lg font-bold tracking-wider text-foreground uppercase truncate transition-colors">
               {t("modal.logStatus")}
             </h2>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-muted-theme hover:text-foreground transition-colors"
           >
             <svg
               className="w-6 h-6"
@@ -181,10 +181,10 @@ export default function LogActionModal({
           {/* STEP 1 */}
           {step === 1 && (
             <div className="animate-modal-up">
-              <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2">
+              <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2 text-foreground transition-colors">
                 {t("modal.stateQuestion")}
               </h3>
-              <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm">
+              <p className="text-muted-theme text-center mb-6 md:mb-8 text-xs md:text-sm transition-colors">
                 {t("modal.stateSub")}
               </p>
 
@@ -260,12 +260,12 @@ export default function LogActionModal({
           {step === 2 && (
             <div className="animate-modal-left flex flex-col h-full overflow-hidden">
               <div className="shrink-0">
-                <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2 text-white">
+                <h3 className="text-xl md:text-2xl font-black text-center mb-1 md:mb-2 text-foreground transition-colors">
                   {actionType === "procrastinate"
                     ? t("modal.insteadQuestion")
                     : t("modal.workingQuestion")}
                 </h3>
-                <p className="text-gray-400 text-center mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest font-bold">
+                <p className="text-muted-theme text-center mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest font-bold transition-colors">
                   {actionType === "procrastinate"
                     ? "Confess your current level of delay"
                     : "Embrace your flow state activity"}
@@ -282,12 +282,12 @@ export default function LogActionModal({
                         ? actionType === "procrastinate"
                           ? "bg-red-500/20 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
                           : "bg-green-500/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                        : "bg-foreground/5 border-border-theme hover:bg-foreground/10"
                     }`}
                   >
                     <span className="text-2xl group-hover/tag:scale-110 transition-transform drop-shadow-md">{tag.emoji}</span>
                     <div className="flex flex-col min-w-0">
-                      <span className={`text-[11px] md:text-xs font-bold truncate ${selectedTag?.id === tag.id ? "text-white" : "text-gray-300"}`}>
+                      <span className={`text-[11px] md:text-xs font-bold truncate transition-colors ${selectedTag?.id === tag.id ? "text-foreground" : "text-muted-theme"}`}>
                         {tag.label}
                       </span>
                       {actionType === "procrastinate" && (
@@ -302,13 +302,13 @@ export default function LogActionModal({
                 ))}
               </div>
 
-              <div className="mt-6 pt-4 flex justify-between shrink-0 border-t border-white/10">
+              <div className="mt-6 pt-4 flex justify-between shrink-0 border-t border-border-theme transition-colors">
                 <button
                   onClick={() => {
                     setStep(1);
                     setSelectedTag(null);
                   }}
-                  className="px-5 py-2 rounded-lg text-gray-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
+                  className="px-5 py-2 rounded-lg text-muted-theme hover:text-foreground transition-colors text-sm font-bold uppercase tracking-widest"
                 >
                   {t("modal.back")}
                 </button>
@@ -317,8 +317,8 @@ export default function LogActionModal({
                   disabled={!selectedTag || isSubmitting}
                   className={`px-8 py-2 rounded-lg font-black uppercase tracking-widest transition-all ${
                     selectedTag && !isSubmitting
-                      ? "bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.3)]" 
-                      : "bg-white/10 text-white/20 cursor-not-allowed"
+                      ? "bg-foreground text-background hover:bg-foreground/90 shadow-lg" 
+                      : "bg-foreground/10 text-muted-theme/40 cursor-not-allowed"
                   }`}
                 >
                   {isSubmitting ? "Syncing..." : t("modal.submit")}
@@ -374,7 +374,7 @@ export default function LogActionModal({
               </div>
 
               <div className="mt-12 space-y-3 min-h-16">
-                <h3 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 via-white to-purple-500 uppercase tracking-tighter">
+                <h3 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-blue-400 via-foreground to-purple-500 uppercase tracking-tighter transition-colors">
                   {t("modal.syncing")}
                 </h3>
                 <div className="h-4 flex items-center justify-center overflow-hidden">
@@ -394,7 +394,7 @@ export default function LogActionModal({
               </div>
 
               {/* Loader Line */}
-              <div className="w-48 h-px bg-white/5 mt-8 relative overflow-hidden">
+              <div className="w-48 h-px bg-foreground/5 mt-8 relative overflow-hidden transition-colors">
                  <motion.div 
                    initial={{ x: "-100%" }}
                    animate={{ x: "100%" }}
@@ -426,26 +426,26 @@ export default function LogActionModal({
                         ? t("modal.guiltIndex")
                         : t("modal.focusScore")}
                     </p>
-                    <h4 className="text-4xl md:text-6xl font-black text-white">
+                    <h4 className="text-4xl md:text-6xl font-black text-foreground transition-colors">
                       {score}
-                      <span className="text-base md:text-xl text-gray-500 font-medium tracking-normal">
+                      <span className="text-base md:text-xl text-muted-theme/80 font-medium tracking-normal transition-colors">
                         /100
                       </span>
                     </h4>
                   </div>
                   <div
-                    className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg bg-black/40 ${actionType === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center border-2 shadow-lg bg-foreground/10 transition-colors ${actionType === "procrastinate" ? "border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" : "border-green-500/50 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"}`}
                   >
                     <span className="text-3xl drop-shadow-md">{selectedTag?.emoji}</span>
                   </div>
                 </div>
 
                 {/* Quotes */}
-                <div className="mb-8 relative z-10 border-l-2 border-white/20 pl-4 py-1">
-                  <h5 className="text-xl font-bold text-white mb-1.5 uppercase tracking-wide">
+                <div className="mb-8 relative z-10 border-l-2 border-border-theme pl-4 py-1 transition-colors">
+                  <h5 className="text-xl font-bold text-foreground mb-1.5 uppercase tracking-wide transition-colors">
                     {selectedTag?.label}
                   </h5>
-                  <p className="text-sm text-gray-400 italic font-medium leading-relaxed">
+                  <p className="text-sm text-muted-theme italic font-medium leading-relaxed transition-colors">
                     "
                     {actionType === "procrastinate"
                       ? t("modal.proQuote")
@@ -456,12 +456,12 @@ export default function LogActionModal({
 
                 {/* Compare Stats */}
                 <div className="grid grid-cols-2 gap-3 mb-8 relative z-10">
-                  <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold opacity-70">
+                  <div className="bg-foreground/10 rounded-xl p-3 border border-border-theme flex flex-col justify-between transition-colors">
+                    <p className="text-[10px] text-muted-theme/80 uppercase tracking-widest mb-2 font-bold opacity-70 transition-colors">
                       {t("modal.globalAvg")}
                     </p>
                     <div>
-                      <p className="text-xl font-black text-gray-200">
+                      <p className="text-xl font-black text-foreground transition-colors">
                         {actionType === "procrastinate" 
                            ? `${stats?.global?.avgGuilt || 70}/100` 
                            : `${stats?.global?.avgFocus || 80}/100`}
@@ -479,15 +479,15 @@ export default function LogActionModal({
                       </p>
                     </div>
                   </div>
-                  <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex flex-col justify-between">
+                  <div className="bg-foreground/10 rounded-xl p-3 border border-border-theme flex flex-col justify-between transition-colors">
                     <p
-                      className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 truncate font-bold opacity-70"
+                      className="text-[10px] text-muted-theme/80 uppercase tracking-widest mb-2 truncate font-bold opacity-70 transition-colors"
                       title={userLocation?.country}
                     >
                       {userLocation?.country || "Local"} {t("modal.localAvg")}
                     </p>
                     <div>
-                      <p className="text-xl font-black text-gray-200">
+                      <p className="text-xl font-black text-foreground transition-colors">
                         {actionType === "procrastinate" 
                            ? `${stats?.local?.avgGuilt || 65}/100` 
                            : `${stats?.local?.avgFocus || 75}/100`}

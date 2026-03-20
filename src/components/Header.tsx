@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { useTheme } from "@/context/ThemeContext";
 import { languages } from "@/constants/translations";
 
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -12,16 +14,16 @@ const Header = () => {
     languages.find((l) => l.code === language) || languages[0];
 
   return (
-    <header className="w-full shrink-0 flex items-center justify-between px-4 md:px-8 py-4 md:py-5 bg-zinc-950 border-b border-white/10 relative z-50">
+    <header className="w-full shrink-0 flex items-center justify-between px-4 md:px-8 py-4 md:py-5 bg-background border-b border-border-theme relative z-50 transition-colors duration-500">
       <Link
         href="/"
         className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity"
       >
         <div className="relative flex items-center justify-center w-6 h-6 md:w-8 md:h-8">
-          <div className="absolute inset-0 rounded-full bg-blue-500 blur-sm opacity-70 animate-pulse"></div>
-          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] relative z-10"></div>
+          <div className="absolute inset-0 rounded-full bg-blue-500 blur-sm opacity-50 animate-pulse"></div>
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-foreground shadow-[0_0_15px_rgba(var(--foreground),0.8)] relative z-10 transition-colors"></div>
         </div>
-        <h1 className="text-lg md:text-xl font-bold tracking-wider text-white drop-shadow-md uppercase flex items-center gap-2">
+        <h1 className="text-lg md:text-xl font-bold tracking-wider text-foreground drop-shadow-md uppercase flex items-center gap-2 transition-colors">
           <span className="truncate max-w-[120px] md:max-w-none">
             {t("header.title")}
             <span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-medium">
@@ -38,19 +40,25 @@ const Header = () => {
         <nav className="hidden md:flex items-center gap-8">
           <Link
             href="/insights"
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300"
+            className="text-sm font-medium text-muted-theme hover:text-foreground transition-all duration-300"
           >
             {t("nav.insights")}
           </Link>
           <Link
             href="/about"
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300"
+            className="text-sm font-medium text-muted-theme hover:text-foreground transition-all duration-300"
           >
             {t("nav.about")}
           </Link>
           <Link
+            href="/contact"
+            className="text-sm font-medium text-muted-theme hover:text-foreground transition-all duration-300"
+          >
+            {t("nav.contact")}
+          </Link>
+          <Link
             href="/"
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300 flex items-center gap-2 group"
+            className="text-sm font-medium text-muted-theme hover:text-foreground transition-all duration-300 flex items-center gap-2 group"
           >
             {t("nav.getApp")}
             <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[8px] font-black tracking-widest uppercase group-hover:bg-amber-500/20 transition-all">
@@ -59,18 +67,35 @@ const Header = () => {
           </Link>
         </nav>
 
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-card border border-border-theme rounded-full hover:bg-white/10 transition-all text-foreground"
+          aria-label="Toggle Theme"
+        >
+          {theme === "dark" ? (
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
+
         {/* Language Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsLangOpen(!isLangOpen)}
-            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 md:px-4 py-1.5 hover:bg-white/10 transition-all group pointer-events-auto"
+            className="flex items-center gap-2 bg-card border border-border-theme rounded-full px-3 md:px-4 py-1.5 hover:bg-white/10 transition-all group pointer-events-auto"
           >
             <span className="text-sm">{currentLang.flag}</span>
-            <span className="hidden xs:inline text-[10px] font-bold text-gray-300 uppercase tracking-widest group-hover:text-white transition-colors">
+            <span className="hidden xs:inline text-[10px] font-bold text-muted-theme uppercase tracking-widest group-hover:text-foreground transition-colors">
               {currentLang.code}
             </span>
             <svg
-              className={`w-3 h-3 text-gray-500 group-hover:text-blue-400 transition-transform duration-300 ${isLangOpen ? "rotate-180" : ""}`}
+              className={`w-3 h-3 text-muted-theme group-hover:text-blue-400 transition-transform duration-300 ${isLangOpen ? "rotate-180" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -93,7 +118,7 @@ const Header = () => {
                 onClick={() => setIsLangOpen(false)}
               ></div>
 
-              <div className="absolute right-0 mt-3 w-48 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-3 w-48 bg-card backdrop-blur-2xl border border-border-theme rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="grid grid-cols-1 gap-1 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {languages.map((lang) => (
                     <button
@@ -105,7 +130,7 @@ const Header = () => {
                       className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl transition-all ${
                         language === lang.code
                           ? "bg-blue-600/20 text-blue-400"
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                          : "text-muted-theme hover:bg-white/5 hover:text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -131,39 +156,39 @@ const Header = () => {
           className="md:hidden flex flex-col gap-1.5 p-2"
         >
           <div
-            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
+            className={`w-6 h-0.5 bg-foreground transition-all duration-300 ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
           ></div>
           <div
-            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "opacity-0" : ""}`}
+            className={`w-6 h-0.5 bg-foreground transition-all duration-300 ${isMobileMenuOpen ? "opacity-0" : ""}`}
           ></div>
           <div
-            className={`w-6 h-0.5 bg-white transition-all duration-300 ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
+            className={`w-6 h-0.5 bg-foreground transition-all duration-300 ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
           ></div>
         </button>
       </div>
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 top-[73px] bg-zinc-950 z-50 md:hidden animate-in slide-in-from-right duration-300 p-8 flex flex-col gap-8 border-t border-white/10">
+        <div className="fixed inset-0 top-[73px] bg-background z-50 md:hidden animate-in slide-in-from-right duration-300 p-8 flex flex-col gap-8 border-t border-border-theme transition-colors">
           <nav className="flex flex-col gap-6">
             <Link
               href="/insights"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-2xl font-black text-white uppercase tracking-tighter"
+              className="text-2xl font-black text-foreground uppercase tracking-tighter"
             >
               {t("nav.insights")}
             </Link>
             <Link
               href="/about"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-2xl font-black text-white uppercase tracking-tighter"
+              className="text-2xl font-black text-foreground uppercase tracking-tighter"
             >
               {t("nav.about")}
             </Link>
             <Link
               href="/"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3"
+              className="text-2xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3"
             >
               {t("nav.getApp")}
               <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/50 text-amber-500 text-[10px] font-black tracking-widest uppercase">

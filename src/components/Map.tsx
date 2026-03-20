@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useTheme } from "@/context/ThemeContext";
 import Pusher from "pusher-js";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +22,7 @@ interface MapProps {
 }
 
 const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
+  const { theme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +112,10 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       matchExpression.push("rgba(0,0,0,0)");
 
       if (map.current.getLayer("countries-fill")) {
-        map.current.setPaintProperty("countries-fill", "fill-color", matchExpression);
+        // Mapbox match expression requires at least one label/output pair and a default value (min 5 elements in total)
+        // If no countries are being colored, just set a static transparent color to avoid the error.
+        const finalColor = matchExpression.length >= 5 ? matchExpression : "rgba(0,0,0,0)";
+        map.current.setPaintProperty("countries-fill", "fill-color", finalColor);
       }
     } catch (e) {
       console.error("Failed to update map colors:", e);
@@ -156,12 +161,23 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
     }
   }, [period, isLoading, updateMapColors]);
 
+  // Update map style when theme changes
+  useEffect(() => {
+    if (!map.current) return;
+    const style = theme === "dark"
+      ? "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+      : "https://tiles.basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+    map.current.setStyle(style);
+  }, [theme]);
+
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
     const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
-      style: "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: theme === "dark" 
+        ? "https://tiles.basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        : "https://tiles.basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: [20, 20],
       zoom: 1.5,
       pitch: 0,
@@ -385,7 +401,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
   }, [userPin]);
 
   return (
-    <div className="absolute inset-0 w-full h-full bg-black">
+    <div className="absolute inset-0 w-full h-full bg-background transition-colors duration-500">
       <AnimatePresence mode="wait">
         {isLoading && (
           <motion.div
@@ -393,7 +409,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 z-100 flex flex-col items-center justify-center bg-black select-none pointer-events-none"
+            className="absolute inset-0 z-100 flex flex-col items-center justify-center bg-background select-none pointer-events-none transition-colors duration-500"
           >
             <div className="relative">
               {/* Outer orbit glow */}
@@ -409,7 +425,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
               </motion.div>
 
               {/* The Globe Icon */}
-              <div className="relative z-10 p-8 border border-white/5 rounded-full bg-white/2 backdrop-blur-2xl">
+              <div className="relative z-10 p-8 border border-border-theme rounded-full bg-foreground/3 backdrop-blur-2xl transition-all">
                 <svg className="w-16 h-16 md:w-24 md:h-24 text-blue-500/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -444,12 +460,12 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
                  <p className="text-[10px] md:text-xs font-black tracking-[0.5em] text-blue-400 uppercase drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">
                    Initializing World Map
                  </p>
-                 <p className="text-gray-600 font-mono text-[9px] uppercase tracking-widest animate-pulse">
+                 <p className="text-muted-theme font-mono text-[9px] uppercase tracking-widest animate-pulse transition-colors opacity-70">
                    Mapping Global Procrastination Vectors...
                  </p>
               </div>
 
-              <div className="w-48 h-1 bg-white/5 rounded-full overflow-hidden mx-auto relative group">
+              <div className="w-48 h-1 bg-foreground/10 rounded-full overflow-hidden mx-auto relative group">
                 <motion.div 
                   initial={{ x: "-100%" }}
                   animate={{ x: "100%" }}
@@ -460,13 +476,13 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
             </div>
 
             {/* Corner UI elements for tech feel */}
-            <div className="absolute top-12 left-12 opacity-20 hidden md:block">
-               <div className="w-12 h-12 border-t border-l border-white/40" />
-               <p className="font-mono text-[8px] mt-2">SYS_VERSION: 2.1.0-ALPHA</p>
+            <div className="absolute top-12 left-12 opacity-30 hidden md:block transition-all">
+               <div className="w-12 h-12 border-t border-l border-border-theme" />
+               <p className="font-mono text-[8px] mt-2 text-muted-theme/80 italic">SYS_VERSION: 2.1.0-ALPHA</p>
             </div>
-            <div className="absolute bottom-12 right-12 opacity-20 hidden md:block text-right">
-               <div className="w-12 h-12 border-b border-r border-white/40 ml-auto" />
-               <p className="font-mono text-[8px] mt-2 tracking-widest uppercase">Location: {userPin?.country || "SCANNING"}</p>
+            <div className="absolute bottom-12 right-12 opacity-30 hidden md:block text-right transition-all">
+               <div className="w-12 h-12 border-b border-r border-border-theme ml-auto" />
+               <p className="font-mono text-[8px] mt-2 tracking-widest uppercase text-muted-theme/80 italic">Location: {userPin?.country || "SCANNING"}</p>
             </div>
           </motion.div>
         )}
@@ -475,54 +491,54 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       <div ref={mapContainer} className={`w-full h-full transition-all duration-2000 ease-out ${isLoading ? "opacity-0 scale-95 blur-xl" : "opacity-100 scale-100 blur-0"}`} />
 
       {/* Country Sidebar */}
-      <div className={`absolute top-0 right-0 h-full w-full md:w-110 bg-zinc-950/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-transform duration-500 ease-in-out shadow-[-20px_0_50px_rgba(0,0,0,0.8)] ${selectedCountry ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`absolute top-0 right-0 h-full w-full md:w-110 bg-card border-l border-border-theme z-50 transform transition-all duration-500 ease-in-out shadow-2xl ${selectedCountry ? "translate-x-0" : "translate-x-full"}`}>
         {selectedCountry && (
-          <div className="flex flex-col h-full p-6 text-white overflow-y-auto">
+          <div className="flex flex-col h-full p-6 text-foreground overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full" style={{ backgroundColor: countryColorsMap[selectedCountry] || "#fff" }} />
-                <h3 className="text-2xl font-black tracking-wider uppercase">{selectedCountry}</h3>
+                <h3 className="text-2xl font-black tracking-wider uppercase transition-colors">{selectedCountry}</h3>
               </div>
-              <button onClick={() => setSelectedCountry(null)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setSelectedCountry(null)} className="p-2 rounded-full hover:bg-foreground/10 transition-colors">
+                <svg className="w-5 h-5 text-muted-theme hover:text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             {isDetailLoading ? (
-              <div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>
+              <div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground/80 rounded-full animate-spin" /></div>
             ) : selectedCountryInfo && (
               <div className="space-y-6">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Avg Guilt Index</p>
+                <div className="bg-foreground/5 border border-border-theme rounded-xl p-4 transition-colors">
+                  <p className="text-[10px] text-muted-theme uppercase tracking-widest mb-1 transition-colors">Avg Guilt Index</p>
                   <span className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-red-400 to-orange-500">{selectedCountryInfo.averageGuilt}</span>
-                  <div className="w-full h-2 bg-gray-800 rounded-full mt-4 overflow-hidden"><div className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000" style={{ width: `${selectedCountryInfo.averageGuilt}%` }} /></div>
+                  <div className="w-full h-2 bg-foreground/10 rounded-full mt-4 overflow-hidden transition-colors"><div className="h-full bg-linear-to-r from-red-500 to-orange-400 rounded-full transition-all duration-1000" style={{ width: `${selectedCountryInfo.averageGuilt}%` }} /></div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Total Logs</p>
-                    <p className="text-xl font-bold">{selectedCountryInfo.count}</p>
+                  <div className="bg-foreground/5 border border-border-theme rounded-xl p-4 transition-colors">
+                    <p className="text-[10px] text-muted-theme uppercase tracking-widest mb-1 transition-colors">Total Logs</p>
+                    <p className="text-xl font-bold text-foreground transition-colors">{selectedCountryInfo.count}</p>
                   </div>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Top Tag</p>
-                    <p className="text-sm font-semibold truncate">{selectedCountryInfo.topTags?.[0]?.emoji} {selectedCountryInfo.topTags?.[0]?.label || "None"}</p>
+                  <div className="bg-foreground/5 border border-border-theme rounded-xl p-4 transition-colors">
+                    <p className="text-[10px] text-muted-theme uppercase tracking-widest mb-1 transition-colors">Top Tag</p>
+                    <p className="text-sm font-semibold truncate text-foreground transition-colors">{selectedCountryInfo.topTags?.[0]?.emoji} {selectedCountryInfo.topTags?.[0]?.label || "None"}</p>
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center relative overflow-hidden">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">
+                <div className="bg-foreground/5 border border-border-theme rounded-xl p-5 text-center relative overflow-hidden transition-colors">
+                  <p className="text-[10px] text-muted-theme uppercase tracking-widest mb-2 transition-colors">
                     Deadlines Missed ({period === "24h" ? "Today" : period})
                   </p>
-                  <p className="text-4xl font-black tracking-widest">{selectedCountryInfo.missedDeadlines?.toLocaleString()}</p>
+                  <p className="text-4xl font-black tracking-widest text-foreground transition-colors">{selectedCountryInfo.missedDeadlines?.toLocaleString()}</p>
                 </div>
                 
                 {selectedCountryInfo.topTags?.length > 1 && (
                   <div className="space-y-2">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">Trending Tags</p>
+                    <p className="text-[10px] text-muted-theme uppercase tracking-widest transition-colors">Trending Tags</p>
                     {selectedCountryInfo.topTags.map((tag: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
-                        <span className="text-sm capitalize">{tag.emoji} {tag.label}</span>
-                        <span className="text-xs text-gray-500">{tag.count} logs</span>
+                      <div key={i} className="flex items-center justify-between bg-foreground/5 p-3 rounded-lg border border-border-theme transition-colors">
+                        <span className="text-sm capitalize text-foreground transition-colors">{tag.emoji} {tag.label}</span>
+                        <span className="text-xs text-muted-theme transition-colors">{tag.count} logs</span>
                       </div>
                     ))}
                   </div>
@@ -534,44 +550,44 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       </div>
 
       {/* Pin Sidebar */}
-      <div className={`absolute top-0 right-0 h-full w-full md:w-112.5 bg-zinc-950/90 backdrop-blur-xl border-l border-white/10 z-60 transform transition-transform duration-500 ease-in-out ${showUserSidebar && activeSidebarPin ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`absolute top-0 right-0 h-full w-full md:w-112.5 bg-card border-l border-border-theme z-60 transform transition-all duration-500 ease-in-out shadow-2xl ${showUserSidebar && activeSidebarPin ? "translate-x-0" : "translate-x-full"}`}>
         {activeSidebarPin && (
-          <div className="flex flex-col h-full text-white overflow-y-auto w-full relative">
+          <div className="flex flex-col h-full text-foreground overflow-y-auto w-full relative">
             <div className={`p-8 min-h-full flex flex-col relative overflow-hidden ${activeSidebarPin.type === "procrastinate" ? "bg-red-950/20" : "bg-green-950/20"}`}>
               <div className="flex justify-between items-center mb-8 relative z-10">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${activeSidebarPin.type === "procrastinate" ? "bg-red-500" : "bg-green-500"} animate-pulse`} />
-                  <h3 className="text-sm font-bold tracking-[0.2em] uppercase text-white/50">{activeSidebarPin.isSelf ? "Personal Pulse" : "Global Heartbeat"}</h3>
+                  <h3 className="text-sm font-bold tracking-[0.2em] uppercase text-muted-theme transition-colors">{activeSidebarPin.isSelf ? "Personal Pulse" : "Global Heartbeat"}</h3>
                 </div>
-                <button onClick={() => setShowUserSidebar(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <button onClick={() => setShowUserSidebar(false)} className="p-2 hover:bg-foreground/10 rounded-full transition-colors text-muted-theme hover:text-foreground">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
 
               <div className="mb-10 relative z-10">
-                <p className={`text-[10px] uppercase tracking-[0.3em] font-black mb-3 ${activeSidebarPin.type === "procrastinate" ? "text-red-500" : "text-green-500"}`}>
+                <p className={`text-[10px] uppercase tracking-[0.3em] font-black mb-3 transition-colors ${activeSidebarPin.type === "procrastinate" ? "text-red-500" : "text-green-500"}`}>
                   {activeSidebarPin.type === "procrastinate" ? "Guilt Index" : "Focus Score"}
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-8xl font-black italic tracking-tighter">{activeSidebarPin.score}</span>
-                  <span className="text-2xl font-bold text-white/20 lowercase">/100</span>
+                  <span className="text-8xl font-black italic tracking-tighter text-foreground transition-colors">{activeSidebarPin.score}</span>
+                  <span className="text-2xl font-bold text-muted-theme lowercase transition-colors">/100</span>
                 </div>
               </div>
 
               <div className="space-y-6 relative z-10 flex-1">
-                <div className="border-l-4 border-white/10 pl-6 py-2">
-                  <h4 className="text-2xl font-black mb-2">{activeSidebarPin.activity || (activeSidebarPin.type === "procrastinate" ? "Master of Delay" : "Focused Flow")}</h4>
-                  <p className="text-gray-400 italic text-lg leading-relaxed">"{activeSidebarPin.desc || activeSidebarPin.label || "No confession provided."}"</p>
+                <div className="border-l-4 border-border-theme pl-6 py-2 transition-colors">
+                  <h4 className="text-2xl font-black mb-2 text-foreground transition-colors">{activeSidebarPin.activity || (activeSidebarPin.type === "procrastinate" ? "Master of Delay" : "Focused Flow")}</h4>
+                  <p className="text-muted-theme italic text-lg leading-relaxed transition-colors">"{activeSidebarPin.desc || activeSidebarPin.label || "No confession provided."}"</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 mt-12">
-                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Location</p>
-                    <p className="font-bold">{activeSidebarPin.country || "Unknown"}</p>
+                  <div className="bg-foreground/5 rounded-2xl p-4 border border-border-theme transition-colors">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-theme mb-1 transition-colors">Location</p>
+                    <p className="font-bold text-foreground transition-colors">{activeSidebarPin.country || "Unknown"}</p>
                   </div>
-                  <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Time</p>
-                    <p className="font-bold">
+                  <div className="bg-foreground/5 rounded-2xl p-4 border border-border-theme transition-colors">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-theme mb-1 transition-colors">Time</p>
+                    <p className="font-bold text-foreground transition-colors">
                       {activeSidebarPin.timestamp 
                         ? (new Date(activeSidebarPin.timestamp).toLocaleDateString("en-GB") + " " + new Date(activeSidebarPin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
                         : "Just now"}
@@ -593,33 +609,33 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       <div className="absolute bottom-6 left-6 z-100 flex flex-col items-start gap-2 w-full max-w-sm pointer-events-none">
         <AnimatePresence>
           {notifications.map((n) => (
-            <motion.div
+              <motion.div
               key={n.id}
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               className="relative group pointer-events-auto"
             >
-                <div className="relative bg-[#0b0b0e]/95 backdrop-blur-xl border border-white/5 rounded-sm px-5 py-3 shadow-[0_15px_35px_rgba(0,0,0,0.6)] min-w-95 flex items-center gap-4 group overflow-hidden">
+                <div className="relative bg-card/95 backdrop-blur-xl border border-border-theme rounded-sm px-5 py-3 shadow-xl min-w-95 flex items-center gap-4 group overflow-hidden transition-all duration-500">
                   {/* Status Indicator */}
                   <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)] animate-pulse" />
                   
                   <div className="flex-1 flex items-center justify-between gap-4">
-                    <p className="text-[12px] font-medium text-gray-200 tracking-tight">
+                    <p className="text-[12px] font-medium text-foreground tracking-tight transition-colors">
                       {n.isSelf ? (
                         <>
-                          <span className="text-gray-400">You just logged</span>
-                          <span className="mx-1 font-black text-white">{n.label}</span>
+                          <span className="text-muted-theme">You just logged</span>
+                          <span className="mx-1 font-black text-foreground">{n.label}</span>
                           <span className="mx-1">{n.emoji}</span>
                         </>
                       ) : (
                         <>
-                          <span className="text-gray-400">Someone in</span> 
-                          <span className="mx-1 font-bold text-white uppercase tracking-wider">{n.country}</span>
-                          <span className="text-gray-400">log</span>
-                          <span className="mx-1 font-black text-white">{n.label}</span>
+                          <span className="text-muted-theme">Someone in</span> 
+                          <span className="mx-1 font-bold text-foreground uppercase tracking-wider">{n.country}</span>
+                          <span className="text-muted-theme">logged</span>
+                          <span className="mx-1 font-black text-foreground">{n.label}</span>
                           <span className="mx-1">{n.emoji}</span>
-                          <span className="text-gray-400">with score</span>
+                          <span className="text-muted-theme">with score</span>
                           <span className={`ml-1 font-black ${n.type === 'procrastinate' ? 'text-red-500' : 'text-green-500'}`}>
                             {n.score}
                           </span>
@@ -627,13 +643,13 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
                       )}
                     </p>
 
-                    <span className="text-[10px] font-mono font-bold text-gray-600 uppercase tracking-tighter whitespace-nowrap">
+                    <span className="text-[10px] font-mono font-bold text-muted-theme/70 uppercase tracking-tighter whitespace-nowrap transition-colors">
                       Just now
                     </span>
                   </div>
 
-                  {/* Yellow Accent Progress Line */}
-                  <div className="absolute bottom-0 left-0 h-[1.5px] w-full bg-[#1a1a1f]">
+                  {/* Accent Progress Line */}
+                  <div className="absolute bottom-0 left-0 h-[1.5px] w-full bg-foreground/5 transition-colors">
                      <motion.div 
                         initial={{ width: "100%" }}
                         animate={{ width: "0%" }}

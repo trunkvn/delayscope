@@ -17,14 +17,14 @@ const Quote = ({
   return (
     <div className="absolute top-4 md:top-6 left-4 md:left-8 z-10 pointer-events-none flex flex-col items-start max-w-[calc(100%-2rem)] md:max-w-sm">
       <div
-        className={`inline-block mb-1 md:mb-2 px-2.5 py-0.5 md:px-3 md:py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md delay-100 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
+        className={`inline-block mb-1 md:mb-2 px-2.5 py-0.5 md:px-3 md:py-1 rounded-full border border-border-theme bg-card backdrop-blur-md delay-100 transition-all duration-500 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
       >
-        <span className="text-[8px] md:text-[10px] font-semibold tracking-widest text-blue-300 uppercase">
+        <span className="text-[8px] md:text-[10px] font-semibold tracking-widest text-blue-400 uppercase">
           {t("home.trackerTag")}
         </span>
       </div>
       <h2
-        className={`text-xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-br from-white via-gray-200 to-gray-500 drop-shadow-md leading-tight text-left delay-200 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
+        className={`text-xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-br from-foreground via-foreground/80 to-foreground/40 drop-shadow-md leading-tight text-left delay-200 transition-all duration-500 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"}`}
       >
         {t("home.rhythmLine1")} <br />
         <span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -32,7 +32,7 @@ const Quote = ({
         </span>
       </h2>
       <p
-        className={`mt-1 md:mt-2 text-gray-400 text-[11px] md:text-sm font-light tracking-wide text-shadow-sm text-left delay-300 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"} max-w-[280px] md:max-w-none`}
+        className={`mt-1 md:mt-2 text-muted-theme text-[11px] md:text-sm font-light tracking-wide text-shadow-sm text-left delay-300 transition-all duration-500 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"} max-w-[280px] md:max-w-none`}
       >
         {t("home.rhythmSub")}
       </p>
@@ -40,10 +40,10 @@ const Quote = ({
       <button
         onClick={() => setIsLogModalOpen(true)}
         disabled={locationStatus !== "granted"}
-        className={`mt-6 md:mt-8 pointer-events-auto group relative px-6 md:px-8 py-2.5 md:py-3.5 bg-black/60 backdrop-blur-xl rounded-full border transition-all duration-500 shadow-[0_0_25px_rgba(59,130,246,0.2)] flex items-center gap-2 md:gap-3 overflow-hidden delay-400 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"} ${
+        className={`mt-6 md:mt-8 pointer-events-auto group relative px-6 md:px-8 py-2.5 md:py-3.5 bg-card/60 backdrop-blur-xl rounded-full border transition-all duration-500 shadow-[0_0_25px_rgba(59,130,246,0.2)] flex items-center gap-2 md:gap-3 overflow-hidden delay-400 ${isMapLoaded ? "animate-fade-in-up" : "opacity-0"} ${
           locationStatus === "granted"
-            ? "border-blue-500/40 hover:border-blue-400 hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] hover:-translate-y-1 cursor-pointer hover:bg-zinc-900"
-            : "border-gray-600/50 opacity-50 cursor-not-allowed"
+            ? "border-blue-500/40 hover:border-blue-400 hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] hover:-translate-y-1 cursor-pointer hover:bg-card/80"
+            : "border-muted-theme/20 opacity-50 cursor-not-allowed"
         }`}
       >
         {/* Gradient background hover pulse */}
@@ -61,12 +61,12 @@ const Quote = ({
           ></div>
         </div>
 
-        <span className="relative font-bold text-white tracking-widest text-xs md:text-sm uppercase">
+        <span className="relative font-bold text-foreground tracking-widest text-xs md:text-sm uppercase transition-colors">
           {locationStatus === "checking"
             ? t("home.statusLocating")
             : locationStatus === "denied"
-              ? t("home.statusRequired")
-              : t("home.statusLog")}
+               ? t("home.statusRequired")
+               : t("home.statusLog")}
         </span>
 
         {locationStatus === "granted" && (

@@ -47,10 +47,10 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
         isMapLoaded ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"
       }`}
     >
-      <div className="bg-[#0f0f13]/90 backdrop-blur-xl border border-white/5 rounded-2xl px-6 py-2 shadow-2xl flex flex-col gap-1 overflow-hidden">
+      <div className="bg-card/90 backdrop-blur-xl border border-border-theme rounded-2xl px-6 py-2 shadow-2xl flex flex-col gap-1 overflow-hidden transition-all duration-500">
         <div className="flex items-center gap-2">
           {/* <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> */}
-          <h3 className="text-[10px] font-mono font-black tracking-[0.2em] text-gray-500 uppercase">
+          <h3 className="text-[10px] font-mono font-black tracking-[0.2em] text-muted-theme uppercase transition-colors">
             {t("marquee.title") || "Global Activity Stream"}
           </h3>
         </div>
@@ -60,11 +60,11 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
             {trending.map((tag) => (
               <div
                 key={tag.id}
-                className="inline-flex items-center gap-2 bg-[#1a1a20] hover:bg-[#25252d] transition-colors border border-white/5 rounded-full px-3 py-0.5 group cursor-default"
+                className="inline-flex items-center gap-2 bg-foreground/5 hover:bg-foreground/10 transition-all border border-border-theme rounded-full px-3 py-0.5 group cursor-default"
               >
                 <span className="text-base">{tag.emoji}</span>
-                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
-                  {tag.label}
+                <span className="text-[10px] font-bold text-foreground uppercase tracking-tight transition-colors">
+                  {t(`insightsPage.tags.${tag.id}`)}
                 </span>
                 <span className={`text-[10px] font-mono font-black ml-1 ${tag.type === 'FOCUS' ? 'text-green-500' : 'text-red-500'}`}>
                   {((tag.count / totalCount) * 100).toFixed(1)}%
@@ -75,11 +75,11 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
             {trending.map((tag) => (
               <div
                 key={`${tag.id}-dup`}
-                className="inline-flex items-center gap-2 bg-[#1a1a20] hover:bg-[#25252d] transition-colors border border-white/5 rounded-full px-3 py-0.5 group cursor-default"
+                className="inline-flex items-center gap-2 bg-foreground/5 hover:bg-foreground/10 transition-all border border-border-theme rounded-full px-3 py-0.5 group cursor-default"
               >
                 <span className="text-base">{tag.emoji}</span>
-                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">
-                  {tag.label}
+                <span className="text-[10px] font-bold text-foreground uppercase tracking-tight transition-colors">
+                  {t(`insightsPage.tags.${tag.id}`)}
                 </span>
                 <span className={`text-[10px] font-mono font-black ml-1 ${tag.type === 'FOCUS' ? 'text-green-500' : 'text-red-500'}`}>
                   {((tag.count / totalCount) * 100).toFixed(1)}%

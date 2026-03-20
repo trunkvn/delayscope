@@ -80,9 +80,9 @@ export default function Insight({
   const avgGuilt = stats?.avgGuilt || 0;
   
   const getStatusLabel = (score: number) => {
-    if (score < 35) return { label: "Productive", color: "text-green-500" };
-    if (score < 70) return { label: "Distracted", color: "text-amber-500" };
-    return { label: "Chaos", color: "text-red-500" };
+    if (score < 35) return { label: t("homeInsight.productive"), color: "text-green-500" };
+    if (score < 70) return { label: t("homeInsight.distracted"), color: "text-amber-500" };
+    return { label: t("homeInsight.chaos"), color: "text-red-500" };
   };
 
   const status = getStatusLabel(avgGuilt);
@@ -111,40 +111,40 @@ export default function Insight({
     >
       <style jsx global>{`
         .hud-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .hud-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        .hud-scrollbar::-webkit-scrollbar-track { background: var(--card-bg); border-radius: 10px; }
         .hud-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
         .hud-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
         .hud-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(59, 130, 246, 0.3) transparent; }
       `}</style>
-      <div className="relative bg-zinc-950/80 backdrop-blur-3xl border border-white/5 rounded-4xl p-6 shadow-[0_25px_80px_rgba(0,0,0,0.9)] flex flex-col gap-6 overflow-hidden border-b-white/10 shrink-0">
+      <div className="relative bg-card/80 backdrop-blur-3xl border border-border-theme rounded-4xl p-6 shadow-2xl flex flex-col gap-6 overflow-hidden transition-all duration-500 shrink-0">
         {/* Corner Decorators */}
-        <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-white/10" />
-        <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-white/10" />
-        <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-white/10" />
-        <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-white/10" />
+        <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-border-theme" />
+        <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-border-theme" />
+        <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-border-theme" />
+        <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-border-theme" />
 
         <div className="overflow-y-auto hud-scrollbar flex flex-col gap-6 pr-1">
           {/* Header - Monitor Identity */}
-          <div className="flex items-center justify-between border-b border-white/5 pb-4 shrink-0">
+          <div className="flex items-center justify-between border-b border-border-theme pb-4 shrink-0 transition-colors">
             <div className="flex items-center gap-3">
               <div className="relative w-2.5 h-2.5">
                 <div className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-30" />
                 <div className="absolute inset-0 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
               </div>
               <div className="flex flex-col">
-                <h3 className="text-[12px] font-black tracking-[0.5em] text-white uppercase leading-none">
-                  LATERSYNC // CORE
+                <h3 className="text-[12px] font-black tracking-[0.5em] text-foreground uppercase leading-none transition-colors">
+                  {t("homeInsight.coreTitle")}
                 </h3>
-                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-2">INTENTION MONITORING SYSTEM</p>
+                <p className="text-[9px] font-bold text-muted-theme uppercase tracking-widest mt-2">{t("homeInsight.monitoringSystem")}</p>
               </div>
             </div>
-            <div className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm bg-white/5 border border-white/10 ${status.color}`}>
+            <div className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm bg-foreground/5 border border-border-theme ${status.color}`}>
               {status.label}
             </div>
           </div>
 
           {/* Time Period Filter Integrated */}
-          <div className="flex bg-white/5 p-1 rounded-2xl gap-1 border border-white/5">
+          <div className="flex bg-foreground/5 p-1 rounded-2xl gap-1 border border-border-theme">
             {["1h", "6h", "24h", "7d", "15d"].map((p) => (
               <button
                 key={p}
@@ -152,7 +152,7 @@ export default function Insight({
                 className={`flex-1 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all
                   ${period === p 
                     ? "bg-blue-600 text-white shadow-lg" 
-                    : "text-gray-500 hover:text-white hover:bg-white/5"}`}
+                    : "text-muted-theme hover:text-foreground hover:bg-foreground/5"}`}
               >
                 {p}
               </button>
@@ -160,20 +160,20 @@ export default function Insight({
           </div>
 
           {/* Color Key Guide */}
-          <div className="flex items-center justify-between px-3 py-2 bg-white/2 rounded-xl border border-white/5 shrink-0">
-             <p className="text-[8px] font-black text-white uppercase tracking-widest mr-2 opacity-50">Global Legend</p>
+          <div className="flex items-center justify-between px-3 py-2 bg-foreground/5 rounded-xl border border-border-theme shrink-0">
+             <p className="text-[8px] font-black text-foreground uppercase tracking-widest mr-2 opacity-50">{t("homeInsight.globalLegend")}</p>
              <div className="flex gap-4">
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
-                   <span className="text-[8px] font-black text-gray-500 uppercase">Productive</span>
+                   <span className="text-[8px] font-black text-muted-theme uppercase">{t("homeInsight.productive")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-                   <span className="text-[8px] font-black text-gray-500 uppercase">Distracted</span>
+                   <span className="text-[8px] font-black text-muted-theme uppercase">{t("homeInsight.distracted")}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
-                   <span className="text-[8px] font-black text-gray-500 uppercase">Chaos</span>
+                   <span className="text-[8px] font-black text-muted-theme uppercase">{t("homeInsight.chaos")}</span>
                 </div>
              </div>
           </div>
@@ -181,28 +181,28 @@ export default function Insight({
           {/* Global Statistics Grid */}
           <div className="grid grid-cols-2 gap-8 shrink-0">
             <div className="relative">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <span className="w-1 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" /> AVG. GUILT
+              <p className="text-[9px] font-black text-muted-theme uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                 <span className="w-1 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]" /> {t("homeInsight.avgGuilt")}
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-black text-white tracking-tighter drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
+                <span className="text-5xl font-black text-foreground tracking-tighter drop-shadow-md transition-colors">
                   {avgGuilt}
                 </span>
-                <span className="text-[12px] font-black text-gray-600">/ 100</span>
+                <span className="text-[12px] font-black text-muted-theme/80">/ 100</span>
               </div>
             </div>
 
-            <div className="relative pl-6 border-l border-white/5">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" /> LIVE ACTIVITY
+            <div className="relative pl-6 border-l border-border-theme">
+              <p className="text-[8px] font-black text-muted-theme uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                 <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" /> {t("homeInsight.liveActivity")}
               </p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-gray-100 tracking-tighter">
+                <span className="text-3xl font-black text-foreground/90 tracking-tighter transition-colors">
                   {stats?.activeDelayers || 0}
                 </span>
-                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest leading-none ml-1">Live</span>
+                <span className="text-[9px] font-black text-green-500 uppercase tracking-widest leading-none ml-1">{t("homeInsight.live")}</span>
               </div>
-              <p className="text-[8px] font-bold text-gray-600 mt-1">Logs: {stats?.totalLogs.toLocaleString()}</p>
+              <p className="text-[8px] font-bold text-muted-theme/80 mt-1 uppercase transition-colors tracking-widest">{t("homeInsight.logs")} {stats?.totalLogs.toLocaleString()}</p>
             </div>
           </div>
 
@@ -211,19 +211,19 @@ export default function Insight({
              {/* Delay Leaders */}
              <div className="space-y-3">
                 <p className="text-[8px] font-black text-red-500/50 uppercase tracking-widest flex items-center gap-2">
-                   <span className="w-2 h-px bg-red-500/20" /> DELAY LEADERS
+                   <span className="w-2 h-px bg-red-500/20" /> {t("homeInsight.delayLeaders")}
                 </p>
                 <div className="flex flex-col gap-2">
                    {delayLeaders.length > 0 ? delayLeaders.map((c, i) => (
-                     <div key={`delay-${c.code}`} className="bg-white/2 border border-white/5 rounded-lg p-2.5 flex items-center justify-between group hover:border-red-500/20 transition-all">
+                     <div key={`delay-${c.code}`} className="bg-foreground/5 border border-border-theme rounded-lg p-2.5 flex items-center justify-between group hover:border-red-500/20 transition-all">
                         <div className="flex items-center gap-1.5 min-w-0">
-                           <span className="text-[9px] font-black text-gray-600">#{i+1}</span>
-                           <span className="text-sm font-black text-white tracking-tighter truncate">{c.code}</span>
+                           <span className="text-[9px] font-black text-muted-theme/80 uppercase">#{i+1}</span>
+                           <span className="text-sm font-black text-foreground tracking-tighter truncate transition-colors">{c.code}</span>
                         </div>
                         <span className="text-[10px] font-bold text-red-500/60 ml-2">{c.count}</span>
                      </div>
                    )) : (
-                     <div className="text-center py-2 text-[9px] text-gray-700 font-black tracking-widest uppercase">---</div>
+                     <div className="text-center py-2 text-[9px] text-muted-theme font-black tracking-widest uppercase opacity-20 transition-opacity">---</div>
                    )}
                 </div>
              </div>
@@ -231,19 +231,19 @@ export default function Insight({
              {/* Focus Leaders */}
              <div className="space-y-3">
                 <p className="text-[8px] font-black text-green-500/50 uppercase tracking-widest flex items-center gap-2">
-                   <span className="w-2 h-px bg-green-500/20" /> FOCUS LEADERS
+                   <span className="w-2 h-px bg-green-500/20" /> {t("homeInsight.focusLeaders")}
                 </p>
                 <div className="flex flex-col gap-2">
                    {focusLeaders.length > 0 ? focusLeaders.map((c, i) => (
-                     <div key={`focus-${c.code}`} className="bg-white/2 border border-white/5 rounded-lg p-2.5 flex items-center justify-between group hover:border-green-500/20 transition-all">
+                     <div key={`focus-${c.code}`} className="bg-foreground/5 border border-border-theme rounded-lg p-2.5 flex items-center justify-between group hover:border-green-500/20 transition-all">
                         <div className="flex items-center gap-1.5 min-w-0">
-                           <span className="text-[9px] font-black text-gray-600">#{i+1}</span>
-                           <span className="text-sm font-black text-white tracking-tighter truncate">{c.code}</span>
+                           <span className="text-[9px] font-black text-muted-theme/80 uppercase">#{i+1}</span>
+                           <span className="text-sm font-black text-foreground tracking-tighter truncate transition-colors">{c.code}</span>
                         </div>
                         <span className="text-[10px] font-bold text-green-500/60 ml-2">{c.count}</span>
                      </div>
                    )) : (
-                     <div className="text-center py-2 text-[9px] text-gray-700 font-black tracking-widest uppercase">---</div>
+                     <div className="text-center py-2 text-[9px] text-muted-theme font-black tracking-widest uppercase opacity-20 transition-opacity">---</div>
                    )}
                 </div>
              </div>
@@ -251,24 +251,24 @@ export default function Insight({
 
           {/* Spectrum Analysis */}
           <div className="space-y-3 shrink-0">
-            <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-              <span className="text-gray-600 font-bold">Spectrum</span>
+            <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest transition-colors">
+              <span className="text-muted-theme font-bold">{t("homeInsight.spectrum")}</span>
               <div className="flex gap-3">
                 <span className="text-green-500/70">FCS {Math.round(focusRatio)}%</span>
                 <span className="text-red-500/70">DLY {Math.round(100 - focusRatio)}%</span>
               </div>
             </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden flex relative">
+            <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden flex relative border border-border-theme">
               <div className="h-full bg-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all duration-1000" style={{ width: `${focusRatio}%` }} />
               <div className="h-full bg-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all duration-1000" style={{ width: `${100 - focusRatio}%` }} />
             </div>
           </div>
 
           {/* Wave Visualization */}
-          <div className="bg-white/2 border border-white/5 rounded-3xl p-5 space-y-4 shrink-0 mb-2">
+          <div className="bg-foreground/5 border border-border-theme rounded-3xl p-5 space-y-4 shrink-0 mb-2 transition-all">
             <div className="flex items-center justify-between">
-               <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hourly Pulse</span>
-               <span className="text-[8px] font-black text-red-500/60 uppercase">Peak @ {stats?.dangerHour}</span>
+               <span className="text-[9px] font-black text-muted-theme uppercase tracking-widest">{t("homeInsight.hourlyPulse")}</span>
+               <span className="text-[8px] font-black text-red-500/60 uppercase">{t("homeInsight.peakAt")} {stats?.dangerHour}</span>
             </div>
             
             <div className="h-16 w-full relative">
@@ -288,13 +288,13 @@ export default function Insight({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
-                  className="text-red-500/70 drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+                  className="text-red-500/70 drop-shadow-[0_0_8px_rgba(239,68,68,0.3)] transition-all duration-500"
                 />
               </svg>
             </div>
 
             {/* Distraction List */}
-            <div className="space-y-4 pt-3 border-t border-white/5">
+            <div className="space-y-4 pt-3 border-t border-border-theme transition-colors">
               {trending.map((tag, i) => {
                 const colors = [
                   "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]",
@@ -306,17 +306,17 @@ export default function Insight({
                 ];
                 return (
                   <div key={tag.id} className="flex items-center gap-3.5 group">
-                    <div className="w-8 h-8 shrink-0 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-base shadow-inner group-hover:bg-white/10 transition-all">
+                    <div className="w-8 h-8 shrink-0 rounded-lg bg-foreground/5 border border-border-theme flex items-center justify-center text-base shadow-inner group-hover:bg-foreground/10 transition-all">
                       {tag.emoji}
                     </div>
                     <div className="flex-1 space-y-2">
                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
-                          <span className="text-gray-400 group-hover:text-white transition-colors">{tag.label}</span>
-                          <span className="text-gray-600 font-mono italic group-hover:text-gray-400">{tag.count}</span>
+                          <span className="text-muted-theme group-hover:text-foreground transition-colors">{t(`insightsPage.tags.${tag.id}`)}</span>
+                          <span className="text-muted-theme/80 font-mono italic group-hover:text-foreground transition-colors">{tag.count}</span>
                        </div>
-                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-px">
+                       <div className="h-1.5 w-full bg-foreground/5 rounded-full overflow-hidden border border-border-theme">
                           <div 
-                            className={`h-full rounded-full transition-all duration-1500 ${colors[i % colors.length]}`} 
+                            className={`h-full rounded-full transition-all duration-1000 ${colors[i % colors.length]}`} 
                             style={{ width: `${(tag.count / (trending[0]?.count || 1)) * 100}%` }} 
                           />
                        </div>
@@ -332,17 +332,17 @@ export default function Insight({
              <div className="bg-blue-600/5 border border-blue-500/10 rounded-2xl p-4 relative overflow-hidden shrink-0 group hover:bg-blue-600/10 transition-all border-b-blue-500/20">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-1000" />
                 <div className="flex items-center justify-between mb-3 relative z-10">
-                   <span className="text-[10px] font-black text-blue-400/80 uppercase tracking-widest">{countryCode} NODE MONITOR</span>
-                   <span className="text-[8px] font-black text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-sm">LIVE</span>
+                   <span className="text-[10px] font-black text-blue-400/80 uppercase tracking-widest">{t("homeInsight.nodeMonitor").replace("{country}", countryCode)}</span>
+                   <span className="text-[8px] font-black text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded-sm uppercase">{t("insights.live")}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 relative z-10 font-black">
                    <div>
-                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">Avg Local</p>
-                      <p className="text-2xl text-white tracking-tighter">{local.avgGuilt}<span className="text-[10px] text-blue-400/30 ml-0.5">idx</span></p>
+                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">{t("homeInsight.avgLocal")}</p>
+                      <p className="text-2xl text-foreground tracking-tighter transition-colors">{local.avgGuilt}<span className="text-[10px] text-blue-400/30 ml-0.5">idx</span></p>
                    </div>
                    <div className="text-right">
-                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">Signals</p>
-                      <p className="text-2xl text-white tracking-tighter">{local.proCount + local.focusCount}</p>
+                      <p className="text-[7px] text-blue-400/50 uppercase mb-0.5 tracking-tighter">{t("homeInsight.signals")}</p>
+                      <p className="text-2xl text-foreground tracking-tighter transition-colors">{local.proCount + local.focusCount}</p>
                    </div>
                 </div>
              </div>
@@ -350,17 +350,17 @@ export default function Insight({
         </div>
 
         {/* System Footer */}
-        <div className="flex items-center justify-between border-t border-white/5 pt-4 opacity-30 grayscale group-hover:grayscale-0 transition-all shrink-0">
+        <div className="flex items-center justify-between border-t border-border-theme pt-4 opacity-30 grayscale group-hover:grayscale-0 transition-all shrink-0">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[7px] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">SYSTEM://LATERSYNC_CORE_V1</span>
-            <span className="text-[6px] font-bold text-gray-700 uppercase">Authenticated Access / 0x4F92</span>
+            <span className="text-[7px] font-mono font-black text-muted-theme uppercase tracking-[0.3em]">SYSTEM://LATERSYNC_CORE_V1</span>
+            <span className="text-[6px] font-bold text-muted-theme/80 uppercase">Authenticated Access / 0x4F92</span>
           </div>
           <div className="text-right flex flex-col gap-0.5 items-end">
              <div className="flex items-center gap-1">
                 <div className="w-1 h-1 rounded-full bg-green-500" />
-                <span className="text-[7px] font-black text-green-500 uppercase tracking-widest">Sync</span>
+                <span className="text-[7px] font-black text-green-500 uppercase tracking-widest leading-none">{t("homeInsight.sync")}</span>
              </div>
-             <span className="text-[6px] font-mono text-gray-700 uppercase italic">MTU: 1500 / TTL: 64</span>
+             <span className="text-[6px] font-mono text-muted-theme/80 uppercase italic">MTU: 1500 / TTL: 64</span>
           </div>
         </div>
       </div>

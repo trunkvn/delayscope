@@ -1,15 +1,37 @@
 @import "tailwindcss";
 
+:root {
+  --background: #fdfdfd;
+  --foreground: #121212;
+  --card-bg: rgba(240, 240, 245, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --accent: #5eff00;
+  --accent-glow: rgba(94, 255, 0, 0.2);
+  --muted: rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-track: rgba(0, 0, 0, 0.03);
+}
+
+.dark {
+  --background: #050505;
+  --foreground: #ededed;
+  --card-bg: rgba(20, 20, 25, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --accent: #5eff00;
+  --accent-glow: rgba(94, 255, 0, 0.4);
+  --muted: rgba(255, 255, 255, 0.4);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-track: rgba(255, 255, 255, 0.03);
+}
+
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-:root {
-  --background: #050505;
-  --foreground: #ededed;
-  --accent: #5eff00; /* Neon green for procrastination energy? Or maybe something more "lazy" like soft blue */
-  --accent-glow: rgba(94, 255, 0, 0.4);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-border-theme: var(--glass-border);
+  --color-muted-theme: var(--muted);
 }
 
 @layer base {
@@ -70,15 +92,15 @@
   width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--color-muted-theme);
 }
 
 /* Animation for Marquee */

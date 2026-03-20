@@ -71,10 +71,10 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="w-screen h-screen bg-black overflow-y-auto select-none font-sans text-white flex flex-col relative custom-scrollbar">
+    <main className="w-screen h-screen bg-background overflow-y-auto select-none font-sans text-foreground flex flex-col relative custom-scrollbar transition-colors duration-500">
       <Header />
 
-      <div className="relative shrink-0 h-[calc(100vh-73px)] md:h-[calc(100vh-82px)] w-full bg-black overflow-hidden">
+      <div className="relative shrink-0 h-[calc(100vh-73px)] md:h-[calc(100vh-82px)] w-full bg-background overflow-hidden transition-colors duration-500">
         {/* Quote */}
         <Quote
           isMapLoaded={isMapLoaded}

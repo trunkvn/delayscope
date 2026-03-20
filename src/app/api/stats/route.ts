@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         where: { createdAt: { gt: startDate } },
         _count: { tagId: true },
         orderBy: { _count: { tagId: "desc" } },
-        take: 3,
+        take: 10,
       }),
       // Active in last 10m (always live)
       redis.zcount("active:activity", Date.now() - 10 * 60 * 1000, "+inf"),
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
         where: { createdAt: { gt: startDate }, type: "PROCRASTINATE" },
         _count: { id: true },
         orderBy: { _count: { id: "desc" } },
-        take: 3,
+        take: 10,
       }),
       // Top focus countries for period
       prisma.log.groupBy({
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         where: { createdAt: { gt: startDate }, type: "FOCUS" },
         _count: { id: true },
         orderBy: { _count: { id: "desc" } },
-        take: 3,
+        take: 10,
       }),
     ]);
 
@@ -166,7 +166,7 @@ export async function GET(req: NextRequest) {
         focusCount,
         totalGuilt,
         totalFocus: totalFocusScore,
-        avgGuilt: Math.round(totalGuilt / (totalLogs || 1)),
+        avgGuilt: Math.round(totalGuilt / (proCount || 1)),
         avgFocus: Math.round(totalFocusScore / (focusCount || 1)),
         activeDelayers: activeRaw,
         dangerHour,
