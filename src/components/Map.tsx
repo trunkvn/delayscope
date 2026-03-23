@@ -99,11 +99,14 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       Object.entries(countryStats).forEach(([code, stats]: [string, any]) => {
         const score = stats.averageGuilt;
         let color = "rgba(0,0,0,0)";
-        if (score > 0) {
+        
+        // Color the country if there's any activity (even if guilt is 0 due to pure focus)
+        if (stats.count > 0) {
           if (score >= 75) color = "rgba(239, 68, 68, 0.7)"; 
           else if (score >= 36) color = "rgba(245, 158, 11, 0.7)"; 
           else color = "rgba(34, 197, 94, 0.7)"; 
         }
+        
         matchExpression.push(code, color);
         newColorsMap[code] = color;
       });
@@ -357,8 +360,11 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
 
       setIsLoading(false);
       if (onLoad) setTimeout(() => onLoad(), 200);
+      
       setTimeout(() => {
-        mapInstance.flyTo({ zoom: 4, duration: 2000, essential: true });
+        // Run simultaneously with fade/scale transitions 
+        // (now smooth because we removed the heavy CSS blurs)
+        mapInstance.flyTo({ zoom: 4, duration: 2500, essential: true });
       }, 100);
     });
 
@@ -407,7 +413,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
           <motion.div
             key="map-loader"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+            exit={{ opacity: 0, scale: 1.05 }}
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 z-100 flex flex-col items-center justify-center bg-background select-none pointer-events-none transition-colors duration-500"
           >
@@ -488,7 +494,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
         )}
       </AnimatePresence>
 
-      <div ref={mapContainer} className={`w-full h-full transition-all duration-2000 ease-out ${isLoading ? "opacity-0 scale-95 blur-xl" : "opacity-100 scale-100 blur-0"}`} />
+      <div ref={mapContainer} className={`w-full h-full transition-all duration-2000 ease-out ${isLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"}`} />
 
       {/* Country Sidebar */}
       <div className={`absolute top-0 right-0 h-full w-full md:w-110 bg-card border-l border-border-theme z-50 transform transition-all duration-500 ease-in-out shadow-2xl ${selectedCountry ? "translate-x-0" : "translate-x-full"}`}>
