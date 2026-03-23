@@ -3,7 +3,7 @@
 :root {
   --background: #fdfdfd;
   --foreground: #121212;
-  --card-bg: rgba(240, 240, 245, 0.7);
+  --card-bg: rgba(240, 240, 245, 1);
   --glass-border: rgba(0, 0, 0, 0.08);
   --accent: #5eff00;
   --accent-glow: rgba(94, 255, 0, 0.2);
@@ -15,7 +15,7 @@
 .dark {
   --background: #050505;
   --foreground: #ededed;
-  --card-bg: rgba(20, 20, 25, 0.4);
+  --card-bg: rgba(20, 20, 25, 1);
   --glass-border: rgba(255, 255, 255, 0.05);
   --accent: #5eff00;
   --accent-glow: rgba(94, 255, 0, 0.4);

@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
-import { useTheme } from "@/context/ThemeContext";
 import { languages } from "@/constants/translations";
 
 const Header = () => {
   const { language, setLanguage, t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -24,7 +22,7 @@ const Header = () => {
           <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-foreground shadow-[0_0_15px_rgba(var(--foreground),0.8)] relative z-10 transition-colors"></div>
         </div>
         <h1 className="text-lg md:text-xl font-bold tracking-wider text-foreground drop-shadow-md uppercase flex items-center gap-2 transition-colors">
-          <span className="truncate max-w-[120px] md:max-w-none">
+          <span className="truncate max-w-30 md:max-w-none">
             {t("header.title")}
             <span className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent font-medium">
               {t("header.subtitle")}
@@ -67,23 +65,6 @@ const Header = () => {
           </Link>
         </nav>
 
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-card border border-border-theme rounded-full hover:bg-white/10 transition-all text-foreground"
-          aria-label="Toggle Theme"
-        >
-          {theme === "dark" ? (
-            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-        </button>
-
         {/* Language Dropdown */}
         <div className="relative">
           <button
@@ -119,7 +100,7 @@ const Header = () => {
               ></div>
 
               <div className="absolute right-0 mt-3 w-48 bg-card backdrop-blur-2xl border border-border-theme rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="grid grid-cols-1 gap-1 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-1 max-h-75 overflow-y-auto custom-scrollbar">
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
@@ -169,7 +150,7 @@ const Header = () => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 top-[73px] bg-background z-50 md:hidden animate-in slide-in-from-right duration-300 p-8 flex flex-col gap-8 border-t border-border-theme transition-colors">
+        <div className="fixed inset-0 top-18.25 bg-background z-50 md:hidden animate-in slide-in-from-right duration-300 p-8 flex flex-col gap-8 border-t border-border-theme transition-colors">
           <nav className="flex flex-col gap-6">
             <Link
               href="/insights"
