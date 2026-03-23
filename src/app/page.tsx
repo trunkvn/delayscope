@@ -90,7 +90,7 @@ export default function Home() {
           onPeriodChange={setPeriod}
         />
         <Map userPin={userPin} onLoad={() => setIsMapLoaded(true)} period={period} />
-        <MarqueeLog isMapLoaded={isMapLoaded} />
+        <MarqueeLog isMapLoaded={isMapLoaded} period={period} />
       </div>
 
       <Footer />

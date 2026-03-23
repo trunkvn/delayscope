@@ -13,7 +13,7 @@ interface MarqueeItem {
   timestamp: string;
 }
 
-export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
+export default function MarqueeLog({ isMapLoaded, period }: { isMapLoaded: boolean; period: string }) {
   const { t } = useLanguage();
   const [trending, setTrending] = useState<any[]>([]);
 
@@ -22,7 +22,7 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch("/api/stats");
+        const res = await fetch(`/api/stats?period=${period}`);
         const data = await res.json();
         if (data.trendingTags) {
           setTrending(data.trendingTags);
@@ -35,7 +35,7 @@ export default function MarqueeLog({ isMapLoaded }: { isMapLoaded: boolean }) {
     fetchStats();
     const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
-  }, [isMapLoaded]);
+  }, [isMapLoaded, period]);
 
   const totalCount = trending.reduce((acc, curr) => acc + curr.count, 0);
 
