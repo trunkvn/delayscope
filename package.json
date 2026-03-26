@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3002",
-    "build": "next build --turbopack --port 3002",
+    "build": "next build",
     "start": "next start",
     "simulate": "npx tsx scripts/simulate_live.ts",
     "postinstall": "prisma generate"
