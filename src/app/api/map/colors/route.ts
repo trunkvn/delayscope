@@ -74,8 +74,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(countryStats);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Map Colors API Error:", error);
-    return NextResponse.json({ error: "Failed to fetch map colors" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch map colors", details: error?.message || String(error) }, { status: 500 });
   }
 }

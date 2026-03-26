@@ -92,35 +92,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. Update Redis stats
-    await updateStats({
-      type: selectedTag.type as ActivityType,
-      score,
-      tagId,
-      countryCode: finalCountryCode,
-      label: selectedTag.label,
-      emoji: selectedTag.emoji,
-      countryName: finalCountryCode, // Using code as name for now in feed
-    });
+    // 5. Update Redis stats & Broadcast (Side effects should not crash the main thread)
+    try {
+      await updateStats({
+        type: selectedTag.type as ActivityType,
+        score,
+        tagId,
+        countryCode: finalCountryCode,
+        label: selectedTag.label,
+        emoji: selectedTag.emoji,
+        countryName: finalCountryCode,
+      });
 
-    // 6. Broadcast to Soketi
-    await pusher.trigger("latermap-channel", "new-log", {
-      id: log.id,
-      type: log.type.toLowerCase(),
-      score: log.score,
-      lat: fuzzedLat,
-      lng: fuzzedLng,
-      country: finalCountryCode,
-      tagId: log.tagId,
-      label: selectedTag.label,
-      emoji: selectedTag.emoji,
-      timestamp: log.createdAt,
-    });
+      await pusher.trigger("latermap-channel", "new-log", {
+        id: log.id,
+        type: log.type.toLowerCase(),
+        score: log.score,
+        lat: fuzzedLat,
+        lng: fuzzedLng,
+        country: finalCountryCode,
+        tagId: log.tagId,
+        label: selectedTag.label,
+        emoji: selectedTag.emoji,
+        timestamp: log.createdAt,
+      });
 
-    // 7. Rate Limit Set (30s delay for next log)
-    if (process.env.NODE_ENV === "production") {
-       const rateLimitKey = `ratelimit:log:${ip}`;
-       await redis.set(rateLimitKey, "1", "EX", 30);
+      if (process.env.NODE_ENV === "production") {
+         const rateLimitKey = `ratelimit:log:${ip}`;
+         await redis.set(rateLimitKey, "1", "EX", 30);
+      }
+    } catch (sideEffectError) {
+      console.error("Side effect (Redis/Pusher) Error:", sideEffectError);
+      // We purposefully DO NOT throw an error here to return a 200 OK to the client
     }
 
     return NextResponse.json({
