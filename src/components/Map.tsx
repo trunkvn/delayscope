@@ -189,16 +189,17 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
     map.current = mapInstance;
 
     const pusherKey = process.env.NEXT_PUBLIC_SOKETI_APP_KEY!;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
     const pusherHost = process.env.NEXT_PUBLIC_SOKETI_HOST || "127.0.0.1";
     const pusherPort = Number(process.env.NEXT_PUBLIC_SOKETI_PORT) || 6001;
     
     const pusherClient = new Pusher(pusherKey, {
-      wsHost: pusherHost,
-      wsPort: pusherPort,
-      forceTLS: false,
+      wsHost: pusherCluster ? undefined : pusherHost,
+      wsPort: pusherCluster ? undefined : pusherPort,
+      forceTLS: !!pusherCluster,
       disableStats: true,
       enabledTransports: ["ws", "wss"],
-      cluster: "",
+      cluster: pusherCluster || "",
     });
 
     const channel = pusherClient.subscribe("latermap-channel");
