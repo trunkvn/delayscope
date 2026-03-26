@@ -4,10 +4,10 @@ import { TAGS } from "@/constants/tags";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = (await (params as any)).id;
+    const { id } = await params;
 
     const log = await prisma.log.findUnique({
       where: { id }

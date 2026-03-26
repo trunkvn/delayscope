@@ -5,11 +5,12 @@ import { TAGS } from "@/constants/tags";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { iso: string } }
+  { params }: { params: Promise<{ iso: string }> }
 ) {
   try {
     // Resolve params properly (await requested for Next.js 15)
-    const iso = (await (params as any)).iso.toUpperCase();
+    const { iso: rawIso } = await params;
+    const iso = rawIso.toUpperCase();
 
     // Read period from query params
     const { searchParams } = new URL(req.url);
