@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Stats {
@@ -41,40 +41,50 @@ export default function Insight({
   const [delayLeaders, setDelayLeaders] = useState<any[]>([]);
   const [focusLeaders, setFocusLeaders] = useState<any[]>([]);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const isFetchingRef = useRef(false);
+
   useEffect(() => {
     if (!isMapLoaded) return;
 
     const fetchStats = async () => {
+      // Skip if a fetch is still in-flight
+      if (isFetchingRef.current) return;
+
+      // Cancel any previous in-flight request
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      isFetchingRef.current = true;
+
       try {
         let url = countryCode ? `/api/stats?country=${countryCode}` : "/api/stats";
-        // Append period if available
         url += (url.includes("?") ? "&" : "?") + `period=${period}`;
-        
-        const res = await fetch(url);
+
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.global) {
-          setStats(data.global);
+
+        if (data.global) setStats(data.global);
+        if (data.local) setLocal(data.local);
+        if (data.trendingTags) setTrending(data.trendingTags.slice(0, 3));
+        if (data.delayLeaders) setDelayLeaders(data.delayLeaders);
+        if (data.focusLeaders) setFocusLeaders(data.focusLeaders);
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          console.error("Failed to fetch stats:", error);
         }
-        if (data.local) {
-          setLocal(data.local);
-        }
-        if (data.trendingTags) {
-          setTrending(data.trendingTags.slice(0, 3));
-        }
-        if (data.delayLeaders) {
-          setDelayLeaders(data.delayLeaders);
-        }
-        if (data.focusLeaders) {
-          setFocusLeaders(data.focusLeaders);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
+      } finally {
+        isFetchingRef.current = false;
       }
     };
 
     fetchStats();
     const interval = setInterval(fetchStats, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      abortRef.current?.abort();
+    };
   }, [isMapLoaded, countryCode, period]);
 
   const avgGuilt = stats?.avgGuilt || 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface MarqueeItem {
@@ -17,24 +17,42 @@ export default function MarqueeLog({ isMapLoaded, period }: { isMapLoaded: boole
   const { t } = useLanguage();
   const [trending, setTrending] = useState<any[]>([]);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const isFetchingRef = useRef(false);
+
   useEffect(() => {
     if (!isMapLoaded) return;
 
     const fetchStats = async () => {
+      if (isFetchingRef.current) return;
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      isFetchingRef.current = true;
+
       try {
-        const res = await fetch(`/api/stats?period=${period}`);
+        const res = await fetch(`/api/stats?period=${period}`, { signal: controller.signal });
+        if (!res.ok) return;
         const data = await res.json();
         if (data.trendingTags) {
           setTrending(data.trendingTags);
         }
-      } catch (error) {
-        console.error("Failed to fetch trending tags:", error);
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          console.error("Failed to fetch trending tags:", error);
+        }
+      } finally {
+        isFetchingRef.current = false;
       }
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchStats, 30000); // 30s — tags change slowly
+    return () => {
+      clearInterval(interval);
+      abortRef.current?.abort();
+    };
   }, [isMapLoaded, period]);
 
   const totalCount = trending.reduce((acc, curr) => acc + curr.count, 0);
