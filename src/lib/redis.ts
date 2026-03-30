@@ -4,7 +4,23 @@ const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
 const globalForRedis = global as unknown as { redis: Redis };
 
-export const redis = globalForRedis.redis || new Redis(redisUrl);
+function createRedis() {
+  const client = new Redis(redisUrl, {
+    connectTimeout: 3000,       // 3s to establish TCP connection
+    commandTimeout: 3000,       // 3s per command before error
+    maxRetriesPerRequest: 1,    // fail fast — no retry loops on Vercel serverless
+    retryStrategy: () => null,  // disable auto-reconnect (new instance per cold start)
+    enableOfflineQueue: false,  // reject commands immediately if disconnected
+  });
+  client.on("error", (e) => {
+    if (!e.message?.includes("ECONNREFUSED")) {
+      console.warn("[Redis]", e.message);
+    }
+  });
+  return client;
+}
+
+export const redis = globalForRedis.redis || createRedis();
 
 if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;
 
@@ -47,13 +63,13 @@ export async function updateStats({
     pipeline.hincrby(countryKey, "total_focus", score);
   }
 
-  // 4. Update Trending & Activity
+  // Update Trending & Activity
   const now = Date.now();
   pipeline.zincrby("trending:tags", 1, tagId);
   pipeline.zadd("active:activity", now, `${now}-${Math.random()}`);
   pipeline.zremrangebyscore("active:activity", 0, now - 30 * 60 * 1000); // Keep last 30m
 
-  // 5. Hourly stats for "Danger Hour" & Sparklines
+  // Hourly stats for "Danger Hour" & Sparklines
   const currentHour = new Date().getHours().toString();
   if (type === "PROCRASTINATE") {
     pipeline.hincrby("hourly:guilt:sum", currentHour, score);
@@ -62,7 +78,7 @@ export async function updateStats({
     pipeline.zincrby("top:countries", 1, countryCode.toUpperCase());
   }
 
-  // 6. Marquee Stream
+  // Marquee Stream
   const marqueeKey = "marquee:logs";
   const logItem = JSON.stringify({
     id: Math.random().toString(36).substring(7),
@@ -73,7 +89,7 @@ export async function updateStats({
     country: countryName,
     timestamp: new Date().toISOString()
   });
-  
+
   pipeline.lpush(marqueeKey, logItem);
   pipeline.ltrim(marqueeKey, 0, 49);
 
@@ -81,7 +97,5 @@ export async function updateStats({
     await pipeline.exec();
   } catch (e) {
     console.error("🔴 Fatal Redis Stats Error:", e instanceof Error ? e.message : e);
-    // We don't rethrow here to prevent crashing the caller, 
-    // but the caller might already have its own try-catch.
   }
 }

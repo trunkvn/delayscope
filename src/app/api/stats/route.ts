@@ -14,7 +14,17 @@ const CACHE_TTL: Record<string, number> = {
 
 const VALID_PERIODS = new Set(["1h", "6h", "24h", "7d", "15d"]);
 
-// --- Redis-first path for short periods (1h/6h/24h) ---
+/** Reject a promise if it doesn't resolve within `ms` milliseconds */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+
 async function getStatsFromRedis(period: string, userCountry?: string) {
   const pipeline = redis.pipeline();
 
@@ -34,7 +44,7 @@ async function getStatsFromRedis(period: string, userCountry?: string) {
     pipeline.hgetall(`country:${userCountry}:stats`);
   }
 
-  const results = await pipeline.exec();
+  const results = await withTimeout(pipeline.exec(), 3000);
   if (!results) return null;
 
   const globalRaw = (results[0][1] || {}) as Record<string, string>;
@@ -270,22 +280,37 @@ export async function GET(req: NextRequest) {
     const ttl = CACHE_TTL[period];
 
     try {
-      const cached = await redis.get(cacheKey);
+      const cached = await withTimeout(redis.get(cacheKey), 2000);
       if (cached) {
         return NextResponse.json(JSON.parse(cached), {
           headers: { "X-Cache": "HIT", "Cache-Control": `s-maxage=${ttl}, stale-while-revalidate` },
         });
       }
     } catch {
-      // Redis unavailable — proceed without cache
+      // Redis unavailable or timed out — proceed without cache
     }
 
     let data: any;
 
     if (period === "1h" || period === "6h" || period === "24h") {
-      // Fast path: Redis realtime data (sub-millisecond)
-      data = await getStatsFromRedis(period, userCountry);
-      if (!data) throw new Error("Redis stats unavailable");
+      // Fast path: Redis realtime data. Falls back to DB if Redis is slow.
+      try {
+        const redisData = await getStatsFromRedis(period, userCountry);
+        if (redisData) {
+          data = redisData;
+        } else {
+          throw new Error("Redis returned null");
+        }
+      } catch (redisErr) {
+        console.warn("[Stats] Redis path failed, falling back to DB:", (redisErr as Error).message);
+        // Fallback: query DB for the same period
+        const now = new Date();
+        const startDate = new Date();
+        if (period === "1h") startDate.setHours(now.getHours() - 1);
+        else if (period === "6h") startDate.setHours(now.getHours() - 6);
+        else startDate.setHours(now.getHours() - 24);
+        data = await getStatsFromDB(startDate, userCountry);
+      }
     } else {
       // DB path for 7d / 15d
       const now = new Date();
@@ -296,12 +321,8 @@ export async function GET(req: NextRequest) {
       data = await getStatsFromDB(startDate, userCountry);
     }
 
-    // Store in cache
-    try {
-      await redis.set(cacheKey, JSON.stringify(data), "EX", ttl);
-    } catch {
-      // Cache write failed — non-fatal
-    }
+    // Store in cache (fire-and-forget, don't block response)
+    withTimeout(redis.set(cacheKey, JSON.stringify(data), "EX", ttl), 2000).catch(() => {});
 
     return NextResponse.json(data, {
       headers: { "X-Cache": "MISS", "Cache-Control": `s-maxage=${ttl}, stale-while-revalidate` },
