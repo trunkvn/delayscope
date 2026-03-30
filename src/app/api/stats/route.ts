@@ -38,8 +38,11 @@ export async function GET(req: NextRequest) {
         orderBy: { _count: { tagId: "desc" } },
         take: 10,
       }),
-      // Active in last 10m (always live)
-      redis.zcount("active:activity", Date.now() - 10 * 60 * 1000, "+inf"),
+      // Active in last 10m (always live) - Fail safe for Redis limits
+      redis.zcount("active:activity", Date.now() - 10 * 60 * 1000, "+inf").catch(e => {
+        console.warn("⚠️ Redis zcount failed:", e.message);
+        return 0;
+      }),
       // Hourly distribution for period (Weighted Formula)
       prisma.$queryRaw`
         SELECT 
@@ -166,8 +169,8 @@ export async function GET(req: NextRequest) {
         focusCount,
         totalGuilt,
         totalFocus: totalFocusScore,
-        avgGuilt: Math.round(totalGuilt / (proCount || 1)),
-        avgFocus: Math.round(totalFocusScore / (focusCount || 1)),
+        avgGuilt: Math.round(totalGuilt / (totalLogs || 1)),
+        avgFocus: Math.round(totalFocusScore / (totalLogs || 1)),
         activeDelayers: activeRaw,
         dangerHour,
         hourlySparkline: hourlyData,

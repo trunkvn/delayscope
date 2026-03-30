@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     });
 
     const mailOptions = {
-      from: `DelayScope Contact <${process.env.EMAIL_USER || "daiduong020802@gmail.com"}>`,
+      from: `" ${email} DelayScope Contact" <daiduong020802@gmail.com>`,
       to: "daiduong020802@gmail.com",
       subject: `[DelayScope] New Message from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}\n\n(Saved to DB: ${contact.id})`,

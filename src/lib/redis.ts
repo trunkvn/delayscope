@@ -77,5 +77,11 @@ export async function updateStats({
   pipeline.lpush(marqueeKey, logItem);
   pipeline.ltrim(marqueeKey, 0, 49);
 
-  await pipeline.exec();
+  try {
+    await pipeline.exec();
+  } catch (e) {
+    console.error("🔴 Fatal Redis Stats Error:", e instanceof Error ? e.message : e);
+    // We don't rethrow here to prevent crashing the caller, 
+    // but the caller might already have its own try-catch.
+  }
 }

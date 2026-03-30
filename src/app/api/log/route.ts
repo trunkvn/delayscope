@@ -29,7 +29,13 @@ export async function POST(req: NextRequest) {
     const ip = forwarded ? forwarded.split(/, /)[0] : "127.0.0.1";
     const rateLimitKey = `ratelimit:log:${ip}`;
 
-    const isLimited = await redis.get(rateLimitKey);
+    let isLimited = false;
+    try {
+      isLimited = !!(await redis.get(rateLimitKey));
+    } catch (e) {
+      console.warn("⚠️ Rate limit check failed (Redis):", e instanceof Error ? e.message : e);
+    }
+
     if (isLimited && process.env.NODE_ENV === "production") {
        return NextResponse.json({ 
          error: "Rate limit exceeded. Please wait 30s before logging again.",

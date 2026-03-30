@@ -73,7 +73,7 @@ export default function Insight({
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 5000);
+    const interval = setInterval(fetchStats, 15000);
     return () => clearInterval(interval);
   }, [isMapLoaded, countryCode, period]);
 

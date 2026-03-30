@@ -39,11 +39,13 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
   // Refs for real-time stability
   const geoJsonFeatures = useRef<GeoJSON.Feature[]>([]);
   const userPinRef = useRef(userPin);
+  const periodRef = useRef(period);
 
-  // Keep ref in sync for the Pusher listener
+  // Keep refs in sync for the Pusher listener
   useEffect(() => {
     userPinRef.current = userPin;
-  }, [userPin]);
+    periodRef.current = period;
+  }, [userPin, period]);
 
   // Fetch dynamic country details
   useEffect(() => {
@@ -190,17 +192,22 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
 
     const pusherKey = process.env.NEXT_PUBLIC_SOKETI_APP_KEY!;
     const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-    const pusherHost = process.env.NEXT_PUBLIC_SOKETI_HOST || "127.0.0.1";
-    const pusherPort = Number(process.env.NEXT_PUBLIC_SOKETI_PORT) || 6001;
     
-    const pusherClient = new Pusher(pusherKey, {
-      wsHost: pusherCluster ? undefined : pusherHost,
-      wsPort: pusherCluster ? undefined : pusherPort,
-      forceTLS: !!pusherCluster,
+    const pusherConfig: any = {
+      forceTLS: true,
       disableStats: true,
       enabledTransports: ["ws", "wss"],
-      cluster: pusherCluster || "",
-    });
+    };
+
+    if (pusherCluster) {
+      pusherConfig.cluster = pusherCluster;
+    } else {
+      pusherConfig.wsHost = process.env.NEXT_PUBLIC_SOKETI_HOST || "127.0.0.1";
+      pusherConfig.wsPort = Number(process.env.NEXT_PUBLIC_SOKETI_PORT) || 6001;
+      pusherConfig.forceTLS = false; // Usually true for soketi local via tools, but here we mirror the original logic
+    }
+
+    const pusherClient = new Pusher(pusherKey, pusherConfig);
 
     const channel = pusherClient.subscribe("latermap-channel");
 
@@ -219,7 +226,7 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
       setNotifications(prev => [newNotif, ...prev].slice(0, 3));
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
-      }, 5000);
+      }, 15000);
 
       if (!map.current) return;
 
@@ -248,6 +255,9 @@ const Map: React.FC<MapProps> = ({ userPin, onLoad, period }) => {
           features: geoJsonFeatures.current,
         });
       }
+
+      // 🔄 Update country colors immediately when a new log arrives
+      updateMapColors(periodRef.current);
     });
 
     mapInstance.on("load", async () => {
